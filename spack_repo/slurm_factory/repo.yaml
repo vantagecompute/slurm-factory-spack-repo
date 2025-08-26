@@ -1,0 +1,5 @@
+repo:
+  namespace: slurm_factory
+  description: Slurm Factory custom repository for enhanced Slurm packages
+  url: https://github.com/vantagecompute/slurm-factory-spack-repo
+  api: v2.2
