@@ -1,13 +1,13 @@
 # Copyright Spack Project Developers. See COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
-import re
-import os
 
-import spack.util.executable as exe
-from spack.package import *
+
+import re
 
 from spack_repo.builtin.build_systems.autotools import AutotoolsPackage
+
+from spack.package import *
 
 
 class Slurm(AutotoolsPackage):
@@ -26,6 +26,8 @@ class Slurm(AutotoolsPackage):
 
     homepage = "https://slurm.schedmd.com"
     url = "https://github.com/SchedMD/slurm/archive/slurm-21-08-8-2.tar.gz"
+
+    maintainers("w8jcik")
 
     license("GPL-2.0-or-later")
 
@@ -146,9 +148,6 @@ class Slurm(AutotoolsPackage):
     variant("cgroup", default=False, description="Enable cgroup plugin")
     variant("pam", default=False, description="Enable PAM support")
     variant("rsmi", default=False, description="Enable ROCm SMI support")
-    variant("influxdb", default=True, description="Enable InfluxDB profiling plugin")
-    variant("kafka", default=False, description="Enable Kafka profiling plugin")
-    variant("lua", default=False, description="Enable Lua scripting support")
 
     # TODO: add variant for BG/Q and Cray support
 
@@ -162,15 +161,11 @@ class Slurm(AutotoolsPackage):
 
     depends_on("c", type="build")  # generated
 
-    depends_on("librdkafka", when="+kafka")
-
-    depends_on("mysql@8.0.35 +client_only", type=("build", "link"))
-    depends_on("curl libs=shared,static +nghttp2 +libssh2", type=("build", "link"))
+    depends_on("curl")
     depends_on("glib")
     depends_on("json-c")
     depends_on("lz4")
     depends_on("munge")
-    depends_on("lua", when="+lua", type="build")
     depends_on("openssl")
     depends_on("pkgconfig", type="build")
     depends_on("readline", when="+readline")
@@ -194,8 +189,6 @@ class Slurm(AutotoolsPackage):
     depends_on("dbus", when="+cgroup")
     depends_on("linux-pam", when="+pam")
     depends_on("rocm-smi-lib", when="+rsmi")
-    # Apply custom patches
-    #patch("slurm_prefix.patch")
 
     executables = ["^srun$", "^salloc$"]
 
@@ -216,68 +209,15 @@ class Slurm(AutotoolsPackage):
 
     def configure_args(self):
         spec = self.spec
+
         args = [
-            "--enable-multiple-slurmd",
-            "--enable-pam",
-            "--disable-developer",
-            "--disable-debug",
+            "--with-libcurl={0}".format(spec["curl"].prefix),
             "--with-json={0}".format(spec["json-c"].prefix),
             "--with-lz4={0}".format(spec["lz4"].prefix),
             "--with-munge={0}".format(spec["munge"].prefix),
+            "--with-ssl={0}".format(spec["openssl"].prefix),
+            "--with-zlib={0}".format(spec["zlib-api"].prefix),
         ]
-
-        # Build comprehensive CPPFLAGS and LDFLAGS
-        cppflags = []
-        ldflags = []
-
-        # Curl configuration (always included)
-        curl_prefix = spec["curl"].prefix
-
-        # Verify curl headers are available
-        curl_header = os.path.join(curl_prefix, "include", "curl", "curl.h")
-        if not os.path.exists(curl_header):
-            raise RuntimeError(
-                 f"curl headers not found at {curl_header}. Please ensure curl was built with headers included."
-            )
-
-        args.append("--with-libcurl={0}".format(curl_prefix))
-
-        cppflags.append("-I{0}/include".format(curl_prefix))
-        ldflags.extend(["-L{0}/lib".format(curl_prefix), "-Wl,-rpath,{0}/lib".format(curl_prefix)])
-
-        # Additional curl-specific environment variables to ensure proper linking
-        args.extend([
-            "CURL_CFLAGS=-I{0}/include".format(curl_prefix),
-            "CURL_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
-        ])
-
-        if "+lua" in spec:
-            lua_prefix = spec["lua"].prefix
-            args.extend([
-                "CURL_CFLAGS=-I{0}/include".format(lua_prefix),
-                "CURL_LIBS=-L{0}/lib -lcurl".format(lua_prefix),
-            ])
-            args.append("--with-lua={0}".format(lua_prefix))
-            cppflags.append("-I{0}/include".format(lua_prefix))
-            ldflags.extend(["-L{0}/lib".format(lua_prefix), "-Wl,-rpath,{0}/lib".format(lua_prefix)])
-
-        if "+kafka" in spec:
-            kafka_prefix = spec["librdkafka"].prefix
-            args.append("--with-rdkafka={0}".format(kafka_prefix))
-            cppflags.append("-I{0}/include".format(kafka_prefix))
-            ldflags.extend(["-L{0}/lib".format(kafka_prefix), "-Wl,-rpath,{0}/lib".format(kafka_prefix)])
-
-        # MySQL configuration (required for accounting)
-        if "mysql" in spec:
-            mysql_prefix = spec["mysql"].prefix
-            cppflags.append("-I{0}/include".format(mysql_prefix))
-            ldflags.extend(["-L{0}/lib".format(mysql_prefix), "-Wl,-rpath,{0}/lib".format(mysql_prefix)])
-
-        # Add the combined flags if we have any
-        if cppflags:
-            args.append("CPPFLAGS={0}".format(" ".join(cppflags)))
-        if ldflags:
-            args.append("LDFLAGS={0}".format(" ".join(ldflags)))
 
         if "~gtk" in spec:
             args.append("--disable-gtktest")
@@ -290,22 +230,22 @@ class Slurm(AutotoolsPackage):
         else:
             args.append("--without-hdf5")
 
-        if "+pmix" in spec:
-            args.append("--with-pmix={0}".format(spec["pmix"].prefix))
-        else:
-            args.append("--without-pmix")
-
         if "+restd" in spec:
             args.append("--enable-slurmrestd")
             args.append("--with-http-parser={0}".format(spec["http-parser"].prefix))
             args.append("--with-jwt={0}".format(spec["libjwt"].prefix))
         else:
             args.append("--disable-slurmrestd")
-   
+
         if "+hwloc" in spec:
             args.append("--with-hwloc={0}".format(spec["hwloc"].prefix))
         else:
             args.append("--without-hwloc")
+
+        if "+pmix" in spec:
+            args.append("--with-pmix={0}".format(spec["pmix"].prefix))
+        else:
+            args.append("--without-pmix")
 
         if spec.satisfies("+nvml"):
             args.append(f"--with-nvml={spec['cuda'].prefix}")
@@ -325,41 +265,3 @@ class Slurm(AutotoolsPackage):
     def install(self, spec, prefix):
         make("install")
         make("-C", "contribs/pmi2", "install")
-        make("-C", "src/plugins/acct_gather_profile/influxdb", "install")
-
-        # Verify curl linkage by checking if slurmctld was built with curl support
-        slurmctld_path = os.path.join(prefix.sbin, "slurmctld")
-        if os.path.exists(slurmctld_path):
-            # Check if the binary was linked against curl
-            try:
-                ldd = exe.which("ldd")
-                if ldd:
-                    output = ldd(slurmctld_path, output=str, error=str)
-                    if "libcurl" in output:
-                        tty.msg("SUCCESS: slurmctld was successfully linked against curl")
-                    else:
-                        tty.warn("WARNING: slurmctld may not be linked against curl")
-            except Exception as e:
-                tty.debug(f"Could not verify curl linkage: {e}")
-
-        # Verify InfluxDB plugin was built if requested
-        if "+influxdb" in spec:
-            influxdb_plugin = os.path.join(prefix.lib, "slurm", "acct_gather_profile_influxdb.so")
-            if not os.path.exists(influxdb_plugin):
-                tty.warn(
-                    "InfluxDB plugin was not built. Check if curl development headers are available. "
-                    f"Expected plugin at: {influxdb_plugin}"
-                )
-            else:
-                tty.msg(f"SUCCESS: InfluxDB plugin built at: {influxdb_plugin}")
-                # Also verify the plugin was linked against curl
-                try:
-                    ldd = exe.which("ldd")
-                    if ldd:
-                        output = ldd(influxdb_plugin, output=str, error=str)
-                        if "libcurl" in output:
-                            tty.msg("SUCCESS: InfluxDB plugin linked against curl")
-                        else:
-                            tty.warn("WARNING: InfluxDB plugin may not be linked against curl")
-                except Exception as e:
-                    tty.debug(f"Could not verify InfluxDB plugin curl linkage: {e}")
