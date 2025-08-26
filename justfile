@@ -1,0 +1,122 @@
+#!/usr/bin/env just --justfile
+# Copyright 2025 Vantage Compute Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+uv := require("uv")
+
+project_dir := justfile_directory()
+src_dir := project_dir / "spack_repo"
+
+export PY_COLORS := "1"
+export PYTHONBREAKPOINT := "pdb.set_trace"
+export PYTHONPATH := src_dir
+
+uv_run := "uv run --frozen --extra dev"
+
+# Install Docusaurus dependencies
+[group("docusaurus")]
+docs-install:
+    @echo "📦 Installing Docusaurus dependencies..."
+    cd docusaurus && yarn install
+
+# Start Docusaurus development server
+[group("docusaurus")]
+docs-dev: docs-install
+    @echo "🚀 Starting Docusaurus development server..."
+    cd docusaurus && yarn start
+
+# Start Docusaurus development server on specific port
+[group("docusaurus")]
+docs-dev-port port="3000": docs-install
+    @echo "🚀 Starting Docusaurus development server on port {{port}}..."
+    cd docusaurus && yarn start --port {{port}}
+
+# Build Docusaurus for production
+[group("docusaurus")]
+docs-build: docs-install
+    #{{uv_run}} python3 ./scripts/generate_complete_docs.py
+    {{uv_run}} python3 ./scripts/update_docs_version.py
+    @echo "🏗️ Building Docusaurus for production..."
+    cd docusaurus && yarn build
+
+# Lint markdown documentation
+[group("docusaurus")]
+docs-lint: docs-install
+    @echo "🔍 Linting markdown documentation..."
+    cd docusaurus && yarn lint:md
+
+# Serve built Docusaurus site locally
+[group("docusaurus")]
+docs-serve: docs-build
+    @echo "🌐 Serving built Docusaurus site..."
+    cd docusaurus && yarn serve
+
+# Clean Docusaurus build artifacts
+[group("docusaurus")]
+docs-clean:
+    @echo "🧹 Cleaning Docusaurus build artifacts..."
+    cd docusaurus && rm -rf build .docusaurus
+
+# Show available documentation commands
+[group("docusaurus")]
+docs-help:
+    @echo "📚 Docusaurus Commands:"
+    @echo "  docs-install    - Install dependencies"
+    @echo "  docs-dev        - Start development server"
+    @echo "  docs-dev-port   - Start dev server on specific port"
+    @echo "  docs-build      - Build for production"
+    @echo "  docs-lint       - Lint markdown documentation"
+    @echo "  docs-serve      - Serve built site"
+    @echo "  docs-clean      - Clean build artifacts"
+
+[private]
+default:
+    @just help
+
+# Regenerate uv.lock
+[group("dev")]
+lock:
+    uv lock --no-cache
+
+# Create a development environment
+[group("dev")]
+env: lock
+    uv sync --extra dev
+
+# Upgrade uv.lock with the latest dependencies
+[group("dev")]
+upgrade:
+    uv lock --upgrade
+
+[group("dev")]
+build: lock
+    uv build --no-cache
+
+
+# Apply coding style standards to code
+[group("lint")]
+fmt: lock
+    {{uv_run}} ruff format {{src_dir}} --exclude=data
+    {{uv_run}} ruff check --fix {{src_dir}} --exclude=data
+
+# Check code against coding style standards
+[group("lint")]
+lint: lock
+    {{uv_run}} codespell {{src_dir}} --skip=data
+    {{uv_run}} ruff check {{src_dir}} --exclude=data
+
+# Run static type checker on code
+[group("lint")]
+typecheck: lock
+    {{uv_run}} pyright {{src_dir}}

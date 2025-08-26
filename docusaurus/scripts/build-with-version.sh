@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2025 Vantage Compute Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-repo:
-  namespace: slurm_factory
-  description: Slurm Factory custom repository for enhanced Slurm packages
-  url: https://github.com/vantagecompute/slurm-factory-spack-repo
-  api: v2.2
+# Extract version from pyproject.toml and set as environment variable
+VERSION=$(grep '^version = ' ../pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+export DOCUSAURUS_PROJECT_VERSION="$VERSION"
+
+echo "Building Docusaurus with version: $VERSION"
+yarn build

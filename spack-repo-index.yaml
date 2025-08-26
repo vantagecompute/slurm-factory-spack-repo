@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-repo:
-  namespace: slurm_factory
-  description: Slurm Factory custom repository for enhanced Slurm packages
-  url: https://github.com/vantagecompute/slurm-factory-spack-repo
-  api: v2.2
+repo_index:
+  paths:
+  - spack_repo/slurm_factory
