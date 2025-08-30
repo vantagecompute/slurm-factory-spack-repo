@@ -149,7 +149,7 @@ class Slurm(AutotoolsPackage):
     variant("influxdb", default=True, description="Enable InfluxDB profiling plugin")
     variant("kafka", default=False, description="Enable Kafka profiling plugin")
     variant("lua", default=False, description="Enable Lua scripting support")
-
+    variant("mcs", default=False, description="Enable MCS support for K8S integration")
     # TODO: add variant for BG/Q and Cray support
 
     # TODO: add variant for TLS (slurm@25-05:)
@@ -194,6 +194,7 @@ class Slurm(AutotoolsPackage):
     depends_on("dbus", when="+cgroup")
     depends_on("linux-pam", when="+pam")
     depends_on("rocm-smi-lib", when="+rsmi")
+
     # Apply custom patches
     #patch("slurm_prefix.patch")
 
@@ -325,7 +326,14 @@ class Slurm(AutotoolsPackage):
     def install(self, spec, prefix):
         make("install")
         make("-C", "contribs/pmi2", "install")
-        make("-C", "src/plugins/acct_gather_profile/influxdb", "install")
+
+        # InfluxDB plugin installation
+        if spec.satisfies("+influxdb"):
+            make("-C", "src/plugins/acct_gather_profile/influxdb", "install")
+
+        if self.spec.satisfies("@:25-05-1-1"):
+            if spec.satisfies("+mcs"):
+                make("-C", "src/plugins/mcs", "install")
 
         # Verify curl linkage by checking if slurmctld was built with curl support
         slurmctld_path = os.path.join(prefix.sbin, "slurmctld")
