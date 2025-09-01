@@ -8,20 +8,21 @@ This repository provides a custom Slurm package for Spack with additional featur
 
 ## Installation
 
-To use this repository with Spack, add it to `spack.yaml`.
+To use this repository with Spack, add it to `spack.yaml`, e.g.
 ```yaml
 spack:
   repos:
     slurm_factory:
       git: https://github.com/vantagecompute/slurm-factory-spack-repo.git
   specs:
-  - slurm@23-11-11-1 +influxdb +readline +hwloc +pmix +restd ~nvml ~rsmi +cgroup +pam sysconfdir=/etc/slurm %gcc@13.3.0
+  - slurm@23-11-11-1 +influxdb +mcs +readline +hwloc +pmix +restd ~nvml ~rsmi +cgroup +pam sysconfdir=/etc/slurm %gcc@13.3.0
 ```
 
 Or clone and add in one step:
 
 ```bash
 git clone https://github.com/vantagecompute/slurm-factory-spack-repo.git
+
 spack repo add slurm-factory-spack-repo
 ```
 
@@ -30,15 +31,13 @@ spack repo add slurm-factory-spack-repo
 Once added, you can install the custom Slurm package:
 
 ```bash
-spack install slurm_factory::slurm
+spack install slurm_factory.slurm
 ```
 
 ## Repository Structure
 
 ```
 ├── README.md
-├── extras
-│   └── package.py
 ├── spack-repo-index.yaml
 └── spack_repo
     └── slurm_factory
@@ -56,3 +55,10 @@ spack install slurm_factory::slurm
 ## Contributing
 
 Please follow Spack's package development guidelines when contributing to this repository.
+
+
+## License
+
+This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
+
+Copyright 2025 Vantage Compute, Inc. and contributors.
