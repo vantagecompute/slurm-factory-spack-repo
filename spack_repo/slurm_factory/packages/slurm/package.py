@@ -160,6 +160,8 @@ class Slurm(AutotoolsPackage):
     variant("kafka", default=False, description="Enable Kafka profiling plugin")
     variant("lua", default=False, description="Enable Lua scripting support")
     variant("mcs", default=False, description="Enable MCS support for K8S integration")
+    variant("certs", default=False, description="Enable certificate generation support for slurm>=24.11.")
+  
     # TODO: add variant for BG/Q and Cray support
 
     # TODO: add variant for TLS (slurm@25-05:)
@@ -341,9 +343,17 @@ class Slurm(AutotoolsPackage):
         if spec.satisfies("+influxdb"):
             make("-C", "src/plugins/acct_gather_profile/influxdb", "install")
 
+        if self.spec.satisfies("@:24-11-6-1"):
+            if spec.satisfies("+certs"):
+                make("-C", "src/plugins/certmgr", "install")
+
         if self.spec.satisfies("@:25-05-1-1"):
             if spec.satisfies("+mcs"):
                 make("-C", "src/plugins/mcs", "install")
+
+            if spec.satisfies("+certs"):
+                make("-C", "src/plugins/certmgr", "install")
+                make("-C", "src/plugins/certgen", "install")
 
         # Verify curl linkage by checking if slurmctld was built with curl support
         slurmctld_path = os.path.join(prefix.sbin, "slurmctld")
