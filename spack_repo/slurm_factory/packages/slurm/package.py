@@ -271,9 +271,16 @@ class Slurm(AutotoolsPackage):
         if "+influxdb" in spec:
             # Add specific LDFLAGS to force direct curl linking for InfluxDB plugin
             ldflags.extend(["-lcurl"])
+            # Force InfluxDB plugin to use direct curl API instead of slurm wrappers
+            # This matches how Ubuntu builds the plugin
+            cppflags.extend([
+                "-DHAVE_LIBCURL=1",
+                "-DUSE_DIRECT_CURL_CALLS=1",
+                "-DSLURM_NO_CURL_WRAPPER=1"
+            ])
             args.extend([
                 "INFLUXDB_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
-                "INFLUXDB_CFLAGS=-I{0}/include".format(curl_prefix),
+                "INFLUXDB_CFLAGS=-I{0}/include -DHAVE_LIBCURL=1".format(curl_prefix),
             ])
 
         if "+lua" in spec:
