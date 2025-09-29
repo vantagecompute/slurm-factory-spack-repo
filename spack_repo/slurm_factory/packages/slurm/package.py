@@ -236,19 +236,20 @@ class Slurm(AutotoolsPackage):
         
         tty.msg(f"Setting up build environment for Slurm with curl at {curl_prefix}")
         
-        # Create missing libcurl.pc file that Ubuntu provides but Spack curl doesn't
-        pkgconfig_dir = os.path.join(curl_prefix, "lib", "pkgconfig")
-        libcurl_pc = os.path.join(pkgconfig_dir, "libcurl.pc")
+        # Create libcurl.pc file in a writable temporary location
+        # since the curl installation directory is read-only
+        build_dir = self.stage.path if hasattr(self, 'stage') else "/tmp"
+        temp_pkgconfig_dir = os.path.join(build_dir, "temp_pkgconfig")
+        libcurl_pc = os.path.join(temp_pkgconfig_dir, "libcurl.pc")
         
-        tty.msg(f"Checking for libcurl.pc at {libcurl_pc}")
+        tty.msg(f"Creating temporary libcurl.pc at {libcurl_pc}")
         
-        if not os.path.exists(libcurl_pc):
-            try:
-                os.makedirs(pkgconfig_dir, exist_ok=True)
-                tty.msg(f"Created pkgconfig directory at {pkgconfig_dir}")
-                
-                # Create libcurl.pc content similar to Ubuntu's version
-                pc_content = f"""prefix={curl_prefix}
+        try:
+            os.makedirs(temp_pkgconfig_dir, exist_ok=True)
+            tty.msg(f"Created temporary pkgconfig directory at {temp_pkgconfig_dir}")
+            
+            # Create libcurl.pc content similar to Ubuntu's version
+            pc_content = f"""prefix={curl_prefix}
 exec_prefix=${{prefix}}
 libdir=${{prefix}}/lib
 includedir=${{prefix}}/include
@@ -260,32 +261,43 @@ Version: 8.15.0
 Libs: -L${{libdir}} -lcurl
 Cflags: -I${{includedir}}
 """
+            
+            with open(libcurl_pc, "w") as f:
+                f.write(pc_content)
+            
+            tty.msg(f"SUCCESS: Created libcurl.pc at {libcurl_pc}")
+            
+            # Verify the file was created and is readable
+            if os.path.exists(libcurl_pc):
+                with open(libcurl_pc, "r") as f:
+                    content = f.read()
+                    tty.msg(f"Verified libcurl.pc content ({len(content)} chars)")
+            else:
+                tty.error(f"FAILED to create libcurl.pc at {libcurl_pc}")
                 
-                with open(libcurl_pc, "w") as f:
-                    f.write(pc_content)
-                
-                tty.msg(f"SUCCESS: Created missing libcurl.pc at {libcurl_pc}")
-                
-                # Verify the file was created and is readable
-                if os.path.exists(libcurl_pc):
-                    with open(libcurl_pc, "r") as f:
-                        content = f.read()
-                        tty.msg(f"Verified libcurl.pc content ({len(content)} chars)")
-                else:
-                    tty.error(f"FAILED to create libcurl.pc at {libcurl_pc}")
-                    
-            except Exception as e:
-                tty.error(f"ERROR creating libcurl.pc: {e}")
-        else:
-            tty.msg(f"libcurl.pc already exists at {libcurl_pc}")
+        except Exception as e:
+            tty.error(f"ERROR creating libcurl.pc: {e}")
         
-        # Ensure PKG_CONFIG_PATH includes our curl
-        env.prepend_path("PKG_CONFIG_PATH", pkgconfig_dir)
-        tty.msg(f"Added {pkgconfig_dir} to PKG_CONFIG_PATH")
+        # Ensure PKG_CONFIG_PATH includes our temporary curl location FIRST
+        env.prepend_path("PKG_CONFIG_PATH", temp_pkgconfig_dir)
+        tty.msg(f"Added {temp_pkgconfig_dir} to PKG_CONFIG_PATH")
+        
+        # Also add the curl prefix to PATH to ensure curl-config is found
+        env.prepend_path("PATH", os.path.join(curl_prefix, "bin"))
+        tty.msg(f"Added {curl_prefix}/bin to PATH")
         
         # Set environment variables for autotools detection
         env.set("LIBCURL", f"-L{curl_prefix}/lib -lcurl")
         env.set("LIBCURL_CPPFLAGS", f"-I{curl_prefix}/include")
+        
+        # Set CURL_CONFIG explicitly
+        curl_config = os.path.join(curl_prefix, "bin", "curl-config")
+        if os.path.exists(curl_config):
+            env.set("CURL_CONFIG", curl_config)
+            tty.msg(f"Set CURL_CONFIG to {curl_config}")
+        else:
+            tty.warn(f"curl-config not found at {curl_config}")
+        
         tty.msg(f"Set LIBCURL and LIBCURL_CPPFLAGS environment variables")
 
 
