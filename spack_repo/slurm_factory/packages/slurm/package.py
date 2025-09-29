@@ -177,31 +177,34 @@ class Slurm(AutotoolsPackage):
 
     depends_on("librdkafka", when="+kafka")
 
-    depends_on("mysql@8.0.35 +client_only", type=("build", "link"))
-    depends_on("curl libs=shared,static +nghttp2 +libssh2", type=("build", "link"))
-    depends_on("glib")
-    depends_on("json-c")
-    depends_on("lz4")
-    depends_on("munge")
+    depends_on("mysql@8.0.35 +client_only", type=("build", "link", "run"))
+    depends_on("curl libs=shared,static +nghttp2 +libssh2", type=("build", "link", "run"))
+    depends_on("glib", type=("build", "link", "run"))
+    depends_on("json-c", type=("build", "link", "run"))
+    depends_on("lz4", type=("build", "link", "run"))
+    depends_on("munge", type=("build", "link", "run"))
     depends_on("lua", when="+lua", type="build")
-    depends_on("openssl")
+    depends_on("openssl", type=("build", "link", "run"))
     depends_on("pkgconfig", type="build")
-    depends_on("readline", when="+readline")
-    depends_on("zlib-api")
+    depends_on("readline", when="+readline", type=("build", "link", "run"))
+    depends_on("zlib-api", type=("build", "link", "run"))
 
-    depends_on("gtkplus", when="+gtk")
-    depends_on("hdf5", when="+hdf5")
-    depends_on("hwloc", when="+hwloc")
-    depends_on("mariadb", when="+mariadb")
+    depends_on("gtkplus", when="+gtk", type=("build", "link", "run"))
+    depends_on("hdf5", when="+hdf5", type=("build", "link", "run"))
+    depends_on("hwloc", when="+hwloc", type=("build", "link", "run"))
+    depends_on("mariadb", when="+mariadb", type=("build", "link", "run"))
 
-    depends_on("pmix@:5", when="@22-05:+pmix")
-    depends_on("pmix@:3", when="@20-11:21-08+pmix")
-    depends_on("pmix@:2", when="@19-05:20-02+pmix")
-    depends_on("pmix@:1", when="@:18+pmix")
+    # JWT library is needed for auth plugins, not just REST daemon
+    depends_on("libjwt", type=("build", "link", "run"))
+    
+    depends_on("pmix@:5", when="@22-05:+pmix", type=("build", "link", "run"))
+    depends_on("pmix@:3", when="@20-11:21-08+pmix", type=("build", "link", "run"))
+    depends_on("pmix@:2", when="@19-05:20-02+pmix", type=("build", "link", "run"))
+    depends_on("pmix@:1", when="@:18+pmix", type=("build", "link", "run"))
 
     depends_on("http-parser", when="+restd")
     depends_on("libyaml", when="+restd")
-    depends_on("libjwt", when="+restd")
+    # Note: libjwt dependency moved to unconditional above since auth plugins need it
 
     depends_on("cuda", when="+nvml")
     depends_on("dbus", when="+cgroup")
@@ -411,10 +414,12 @@ Cflags: -I${{includedir}}
         else:
             args.append("--without-pmix")
 
+        # Always include JWT since auth plugins need it
+        args.append("--with-jwt={0}".format(spec["libjwt"].prefix))
+
         if "+restd" in spec:
             args.append("--enable-slurmrestd")
             args.append("--with-http-parser={0}".format(spec["http-parser"].prefix))
-            args.append("--with-jwt={0}".format(spec["libjwt"].prefix))
         else:
             args.append("--disable-slurmrestd")
    
@@ -495,52 +500,18 @@ Cflags: -I${{includedir}}
                             tty.warn("WARNING: InfluxDB plugin may not be linked against curl")
                 except Exception as e:
                     tty.debug(f"Could not verify InfluxDB plugin curl linkage: {e}")
-        
-        # Set up runtime library symlinks
-        self.post_install_setup()
 
     def setup_run_environment(self, env):
         """Set up runtime environment for Slurm"""
-        # Add all dependency library paths to LD_LIBRARY_PATH
+        spec = self.spec
+        
+        # Add Slurm lib directories to library path
         env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib)
         env.prepend_path("LD_LIBRARY_PATH", os.path.join(self.prefix.lib, "slurm"))
         
-        # Add dependency library paths
-        for dep_name in ["libjwt", "curl", "json-c", "lz4", "munge", "hwloc"]:
-            if dep_name in self.spec:
-                dep_lib = self.spec[dep_name].prefix.lib
-                env.prepend_path("LD_LIBRARY_PATH", dep_lib)
-        
-        # Add binary paths
+        # Add Slurm binaries to PATH
         env.prepend_path("PATH", self.prefix.bin)
         env.prepend_path("PATH", self.prefix.sbin)
-
-    def post_install_setup(self):
-        """Create symlinks for runtime library dependencies"""
-        spec = self.spec
         
-        tty.msg("Creating runtime library symlinks...")
-        
-        # Create symlinks in the main lib directory for key dependencies
-        main_lib_dir = self.prefix.lib
-        
-        # JWT library symlinks
-        if "libjwt" in spec:
-            jwt_lib_dir = spec["libjwt"].prefix.lib
-            jwt_files = ["libjwt.so", "libjwt.so.2"]
-            for jwt_file in jwt_files:
-                src = os.path.join(jwt_lib_dir, jwt_file)
-                dst = os.path.join(main_lib_dir, jwt_file)
-                if os.path.exists(src) and not os.path.exists(dst):
-                    os.symlink(src, dst)
-                    tty.msg(f"Created symlink: {dst} -> {src}")
-        
-        # Slurm full library symlink (needed by slurmd)
-        slurm_lib_dir = os.path.join(self.prefix.lib, "slurm")
-        libslurmfull_src = os.path.join(slurm_lib_dir, "libslurmfull.so")
-        libslurmfull_dst = os.path.join(main_lib_dir, "libslurmfull.so")
-        if os.path.exists(libslurmfull_src) and not os.path.exists(libslurmfull_dst):
-            os.symlink(libslurmfull_src, libslurmfull_dst)
-            tty.msg(f"Created symlink: {libslurmfull_dst} -> {libslurmfull_src}")
-        
-        tty.msg("Runtime library setup completed")
+        # Set SLURM_ROOT for tools that need it
+        env.set("SLURM_ROOT", self.prefix)
