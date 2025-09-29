@@ -495,3 +495,52 @@ Cflags: -I${{includedir}}
                             tty.warn("WARNING: InfluxDB plugin may not be linked against curl")
                 except Exception as e:
                     tty.debug(f"Could not verify InfluxDB plugin curl linkage: {e}")
+        
+        # Set up runtime library symlinks
+        self.post_install_setup()
+
+    def setup_run_environment(self, env):
+        """Set up runtime environment for Slurm"""
+        # Add all dependency library paths to LD_LIBRARY_PATH
+        env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib)
+        env.prepend_path("LD_LIBRARY_PATH", os.path.join(self.prefix.lib, "slurm"))
+        
+        # Add dependency library paths
+        for dep_name in ["libjwt", "curl", "json-c", "lz4", "munge", "hwloc"]:
+            if dep_name in self.spec:
+                dep_lib = self.spec[dep_name].prefix.lib
+                env.prepend_path("LD_LIBRARY_PATH", dep_lib)
+        
+        # Add binary paths
+        env.prepend_path("PATH", self.prefix.bin)
+        env.prepend_path("PATH", self.prefix.sbin)
+
+    def post_install_setup(self):
+        """Create symlinks for runtime library dependencies"""
+        spec = self.spec
+        
+        tty.msg("Creating runtime library symlinks...")
+        
+        # Create symlinks in the main lib directory for key dependencies
+        main_lib_dir = self.prefix.lib
+        
+        # JWT library symlinks
+        if "libjwt" in spec:
+            jwt_lib_dir = spec["libjwt"].prefix.lib
+            jwt_files = ["libjwt.so", "libjwt.so.2"]
+            for jwt_file in jwt_files:
+                src = os.path.join(jwt_lib_dir, jwt_file)
+                dst = os.path.join(main_lib_dir, jwt_file)
+                if os.path.exists(src) and not os.path.exists(dst):
+                    os.symlink(src, dst)
+                    tty.msg(f"Created symlink: {dst} -> {src}")
+        
+        # Slurm full library symlink (needed by slurmd)
+        slurm_lib_dir = os.path.join(self.prefix.lib, "slurm")
+        libslurmfull_src = os.path.join(slurm_lib_dir, "libslurmfull.so")
+        libslurmfull_dst = os.path.join(main_lib_dir, "libslurmfull.so")
+        if os.path.exists(libslurmfull_src) and not os.path.exists(libslurmfull_dst):
+            os.symlink(libslurmfull_src, libslurmfull_dst)
+            tty.msg(f"Created symlink: {libslurmfull_dst} -> {libslurmfull_src}")
+        
+        tty.msg("Runtime library setup completed")
