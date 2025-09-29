@@ -253,18 +253,40 @@ class Slurm(AutotoolsPackage):
                  f"curl headers not found at {curl_header}. Please ensure curl was built with headers included."
             )
 
+        # The key fix: ensure curl-config is in PATH and force WITH_CURL conditional
+        curl_config_path = os.path.join(curl_prefix, "bin", "curl-config")
+        if not os.path.exists(curl_config_path):
+            raise RuntimeError(
+                f"curl-config not found at {curl_config_path}. Please ensure curl was built with config script."
+            )
+
+        # Set PATH to include curl-config
+        env_path = os.environ.get("PATH", "")
+        curl_bin_dir = os.path.join(curl_prefix, "bin")
+        if curl_bin_dir not in env_path:
+            os.environ["PATH"] = f"{curl_bin_dir}:{env_path}"
+
+        # Force curl detection with explicit path
         args.append("--with-libcurl={0}".format(curl_prefix))
+
+        # Set environment variables that LIBCURL_CHECK_CONFIG looks for
+        os.environ["LIBCURL"] = f"-L{curl_prefix}/lib -lcurl"
+        os.environ["LIBCURL_CPPFLAGS"] = f"-I{curl_prefix}/include"
 
         cppflags.append("-I{0}/include".format(curl_prefix))
         ldflags.extend(["-L{0}/lib".format(curl_prefix), "-Wl,-rpath,{0}/lib".format(curl_prefix)])
 
-        # Additional curl-specific environment variables to ensure proper linking
-        # Force direct curl linking for plugins instead of slurm internal wrappers
+        # Follow SchedMD's build approach - ensure curl is available as build dependency
+        # SchedMD uses libcurl4-openssl-dev as build-depends and builds all plugins integrated
+        # This should make InfluxDB plugin use direct curl calls like the official build
         args.extend([
             "CURL_CFLAGS=-I{0}/include".format(curl_prefix),
             "CURL_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
             "LIBCURL_CFLAGS=-I{0}/include".format(curl_prefix),
             "LIBCURL_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
+            # Ensure curl is available during plugin compilation
+            "LDFLAGS=-L{0}/lib -Wl,-rpath,{0}/lib".format(curl_prefix),
+            "CPPFLAGS=-I{0}/include".format(curl_prefix),
         ])
         
         # Ensure InfluxDB plugin links directly to curl when enabled
@@ -285,10 +307,7 @@ class Slurm(AutotoolsPackage):
 
         if "+lua" in spec:
             lua_prefix = spec["lua"].prefix
-            args.extend([
-                "CURL_CFLAGS=-I{0}/include".format(lua_prefix),
-                "CURL_LIBS=-L{0}/lib -lcurl".format(lua_prefix),
-            ])
+            # Note: These should be lua-related flags, not curl flags for lua section
             args.append("--with-lua={0}".format(lua_prefix))
             cppflags.append("-I{0}/include".format(lua_prefix))
             ldflags.extend(["-L{0}/lib".format(lua_prefix), "-Wl,-rpath,{0}/lib".format(lua_prefix)])
@@ -358,28 +377,10 @@ class Slurm(AutotoolsPackage):
         make("install")
         make("-C", "contribs/pmi2", "install")
 
-        # InfluxDB plugin installation
-        if spec.satisfies("+influxdb"):
-            # Ensure InfluxDB plugin is built and linked properly
-            make("-C", "src/plugins/acct_gather_profile/influxdb", "install")
-            
-            # Verify the plugin exists and has correct linkage
-            influxdb_plugin = os.path.join(prefix.lib, "slurm", "acct_gather_profile_influxdb.so")
-            if os.path.exists(influxdb_plugin):
-                # Check if plugin is using slurm_curl_* (bad) or curl_* (good) symbols
-                try:
-                    nm = exe.which("nm") 
-                    if nm:
-                        output = nm("-D", influxdb_plugin, output=str, error=str)
-                        if "slurm_curl_" in output and "curl_easy_" not in output:
-                            tty.warn(
-                                "InfluxDB plugin is using slurm internal curl wrappers instead of direct curl API. "
-                                "This may cause runtime linking issues."
-                            )
-                        elif "curl_easy_" in output:
-                            tty.msg("SUCCESS: InfluxDB plugin is using direct curl API calls")
-                except Exception as e:
-                    tty.debug(f"Could not check InfluxDB plugin symbols: {e}")
+        # Note: Following SchedMD approach - InfluxDB plugin should be built automatically
+        # as part of main build process when curl is available, not manually built
+        # See https://github.com/SchedMD/slurm/blob/master/debian/control - libcurl4-openssl-dev
+        # is build dependency and plugins are integrated into main package
 
         if self.spec.satisfies("@:24-11-6-1"):
             if spec.satisfies("+certs"):
