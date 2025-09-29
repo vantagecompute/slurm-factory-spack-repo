@@ -1,6 +1,7 @@
 # Copyright (c) 2025 Vantage Compute Corporation. and contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
+import llnl.util.tty as tty
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -227,6 +228,46 @@ class Slurm(AutotoolsPackage):
 
         return (wrapper_flags, None, flags)
 
+
+    def setup_build_environment(self, env):
+        """Setup build environment including creating missing libcurl.pc file"""
+        spec = self.spec
+        curl_prefix = spec["curl"].prefix
+        
+        # Create missing libcurl.pc file that Ubuntu provides but Spack curl doesn't
+        pkgconfig_dir = os.path.join(curl_prefix, "lib", "pkgconfig")
+        libcurl_pc = os.path.join(pkgconfig_dir, "libcurl.pc")
+        
+        if not os.path.exists(libcurl_pc):
+            os.makedirs(pkgconfig_dir, exist_ok=True)
+            
+            # Create libcurl.pc content similar to Ubuntu's version
+            pc_content = f"""prefix={curl_prefix}
+exec_prefix=${{prefix}}
+libdir=${{prefix}}/lib
+includedir=${{prefix}}/include
+
+Name: libcurl
+URL: https://curl.se/
+Description: Library to transfer files with ftp, http, etc.
+Version: 8.15.0
+Libs: -L${{libdir}} -lcurl
+Cflags: -I${{includedir}}
+"""
+            
+            with open(libcurl_pc, "w") as f:
+                f.write(pc_content)
+            
+            tty.msg(f"Created missing libcurl.pc at {libcurl_pc}")
+        
+        # Ensure PKG_CONFIG_PATH includes our curl
+        env.prepend_path("PKG_CONFIG_PATH", pkgconfig_dir)
+        
+        # Set environment variables for autotools detection
+        env.set("LIBCURL", f"-L{curl_prefix}/lib -lcurl")
+        env.set("LIBCURL_CPPFLAGS", f"-I{curl_prefix}/include")
+
+
     def configure_args(self):
         spec = self.spec
         args = [
@@ -260,18 +301,9 @@ class Slurm(AutotoolsPackage):
                 f"curl-config not found at {curl_config_path}. Please ensure curl was built with config script."
             )
 
-        # Set PATH to include curl-config
-        env_path = os.environ.get("PATH", "")
-        curl_bin_dir = os.path.join(curl_prefix, "bin")
-        if curl_bin_dir not in env_path:
-            os.environ["PATH"] = f"{curl_bin_dir}:{env_path}"
-
         # Force curl detection with explicit path
         args.append("--with-libcurl={0}".format(curl_prefix))
 
-        # Set environment variables that LIBCURL_CHECK_CONFIG looks for
-        os.environ["LIBCURL"] = f"-L{curl_prefix}/lib -lcurl"
-        os.environ["LIBCURL_CPPFLAGS"] = f"-I{curl_prefix}/include"
 
         cppflags.append("-I{0}/include".format(curl_prefix))
         ldflags.extend(["-L{0}/lib".format(curl_prefix), "-Wl,-rpath,{0}/lib".format(curl_prefix)])
