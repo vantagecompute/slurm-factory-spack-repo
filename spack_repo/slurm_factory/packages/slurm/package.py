@@ -1,7 +1,6 @@
 # Copyright (c) 2025 Vantage Compute Corporation. and contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
-import llnl.util.tty as tty
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -16,6 +15,7 @@ import re
 import os
 
 import spack.util.executable as exe
+import llnl.util.tty as tty
 from spack.package import *
 
 from spack_repo.builtin.build_systems.autotools import AutotoolsPackage
@@ -234,15 +234,21 @@ class Slurm(AutotoolsPackage):
         spec = self.spec
         curl_prefix = spec["curl"].prefix
         
+        tty.msg(f"Setting up build environment for Slurm with curl at {curl_prefix}")
+        
         # Create missing libcurl.pc file that Ubuntu provides but Spack curl doesn't
         pkgconfig_dir = os.path.join(curl_prefix, "lib", "pkgconfig")
         libcurl_pc = os.path.join(pkgconfig_dir, "libcurl.pc")
         
+        tty.msg(f"Checking for libcurl.pc at {libcurl_pc}")
+        
         if not os.path.exists(libcurl_pc):
-            os.makedirs(pkgconfig_dir, exist_ok=True)
-            
-            # Create libcurl.pc content similar to Ubuntu's version
-            pc_content = f"""prefix={curl_prefix}
+            try:
+                os.makedirs(pkgconfig_dir, exist_ok=True)
+                tty.msg(f"Created pkgconfig directory at {pkgconfig_dir}")
+                
+                # Create libcurl.pc content similar to Ubuntu's version
+                pc_content = f"""prefix={curl_prefix}
 exec_prefix=${{prefix}}
 libdir=${{prefix}}/lib
 includedir=${{prefix}}/include
@@ -254,18 +260,33 @@ Version: 8.15.0
 Libs: -L${{libdir}} -lcurl
 Cflags: -I${{includedir}}
 """
-            
-            with open(libcurl_pc, "w") as f:
-                f.write(pc_content)
-            
-            tty.msg(f"Created missing libcurl.pc at {libcurl_pc}")
+                
+                with open(libcurl_pc, "w") as f:
+                    f.write(pc_content)
+                
+                tty.msg(f"SUCCESS: Created missing libcurl.pc at {libcurl_pc}")
+                
+                # Verify the file was created and is readable
+                if os.path.exists(libcurl_pc):
+                    with open(libcurl_pc, "r") as f:
+                        content = f.read()
+                        tty.msg(f"Verified libcurl.pc content ({len(content)} chars)")
+                else:
+                    tty.error(f"FAILED to create libcurl.pc at {libcurl_pc}")
+                    
+            except Exception as e:
+                tty.error(f"ERROR creating libcurl.pc: {e}")
+        else:
+            tty.msg(f"libcurl.pc already exists at {libcurl_pc}")
         
         # Ensure PKG_CONFIG_PATH includes our curl
         env.prepend_path("PKG_CONFIG_PATH", pkgconfig_dir)
+        tty.msg(f"Added {pkgconfig_dir} to PKG_CONFIG_PATH")
         
         # Set environment variables for autotools detection
         env.set("LIBCURL", f"-L{curl_prefix}/lib -lcurl")
         env.set("LIBCURL_CPPFLAGS", f"-I{curl_prefix}/include")
+        tty.msg(f"Set LIBCURL and LIBCURL_CPPFLAGS environment variables")
 
 
     def configure_args(self):
