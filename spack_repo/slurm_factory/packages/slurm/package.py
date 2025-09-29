@@ -259,10 +259,22 @@ class Slurm(AutotoolsPackage):
         ldflags.extend(["-L{0}/lib".format(curl_prefix), "-Wl,-rpath,{0}/lib".format(curl_prefix)])
 
         # Additional curl-specific environment variables to ensure proper linking
+        # Force direct curl linking for plugins instead of slurm internal wrappers
         args.extend([
             "CURL_CFLAGS=-I{0}/include".format(curl_prefix),
             "CURL_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
+            "LIBCURL_CFLAGS=-I{0}/include".format(curl_prefix),
+            "LIBCURL_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
         ])
+        
+        # Ensure InfluxDB plugin links directly to curl when enabled
+        if "+influxdb" in spec:
+            # Add specific LDFLAGS to force direct curl linking for InfluxDB plugin
+            ldflags.extend(["-lcurl"])
+            args.extend([
+                "INFLUXDB_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
+                "INFLUXDB_CFLAGS=-I{0}/include".format(curl_prefix),
+            ])
 
         if "+lua" in spec:
             lua_prefix = spec["lua"].prefix
@@ -341,7 +353,26 @@ class Slurm(AutotoolsPackage):
 
         # InfluxDB plugin installation
         if spec.satisfies("+influxdb"):
+            # Ensure InfluxDB plugin is built and linked properly
             make("-C", "src/plugins/acct_gather_profile/influxdb", "install")
+            
+            # Verify the plugin exists and has correct linkage
+            influxdb_plugin = os.path.join(prefix.lib, "slurm", "acct_gather_profile_influxdb.so")
+            if os.path.exists(influxdb_plugin):
+                # Check if plugin is using slurm_curl_* (bad) or curl_* (good) symbols
+                try:
+                    nm = exe.which("nm") 
+                    if nm:
+                        output = nm("-D", influxdb_plugin, output=str, error=str)
+                        if "slurm_curl_" in output and "curl_easy_" not in output:
+                            tty.warn(
+                                "InfluxDB plugin is using slurm internal curl wrappers instead of direct curl API. "
+                                "This may cause runtime linking issues."
+                            )
+                        elif "curl_easy_" in output:
+                            tty.msg("SUCCESS: InfluxDB plugin is using direct curl API calls")
+                except Exception as e:
+                    tty.debug(f"Could not check InfluxDB plugin symbols: {e}")
 
         if self.spec.satisfies("@:24-11-6-1"):
             if spec.satisfies("+certs"):
