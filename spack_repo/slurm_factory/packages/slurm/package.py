@@ -459,6 +459,9 @@ Cflags: -I${{includedir}}
         # See https://github.com/SchedMD/slurm/blob/master/debian/control - libcurl4-openssl-dev
         # is build dependency and plugins are integrated into main package
 
+        if spec.satisfies("+influxdb"):
+            make("-C", "src/plugins/acct_gather_profile/influxdb", "install")
+
         if self.spec.satisfies("@:24-11-6-1"):
             if spec.satisfies("+certs"):
                 make("-C", "src/plugins/certmgr", "install")
