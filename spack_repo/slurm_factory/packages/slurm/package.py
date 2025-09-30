@@ -15,7 +15,7 @@ import re
 import os
 
 import spack.util.executable as exe
-import llnl.util.tty as tty
+import spack.util.tty as tty
 from spack.package import *
 
 from spack_repo.builtin.build_systems.autotools import AutotoolsPackage
