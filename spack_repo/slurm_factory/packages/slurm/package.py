@@ -418,6 +418,12 @@ Cflags: -I${{includedir}}
         # Always include JWT since auth plugins need it
         args.append("--with-jwt={0}".format(spec["libjwt"].prefix))
 
+        # Explicitly enable InfluxDB support with curl when variant is enabled
+        if "+influxdb" in spec:
+            args.append("--with-libcurl={0}".format(spec["curl"].prefix))
+        else:
+            args.append("--without-libcurl")
+
         if "+restd" in spec:
             args.append("--enable-slurmrestd")
             args.append("--with-http-parser={0}".format(spec["http-parser"].prefix))
