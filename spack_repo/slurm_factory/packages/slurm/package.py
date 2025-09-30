@@ -510,6 +510,15 @@ Cflags: -I${{includedir}}
         env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib)
         env.prepend_path("LD_LIBRARY_PATH", os.path.join(self.prefix.lib, "slurm"))
         
+        # Add runtime dependency library paths
+        for dep_name in ["curl", "libssh2", "openssl", "libjwt", "munge", "json-c", "lz4", "glib"]:
+            if dep_name in spec:
+                dep_spec = spec[dep_name]
+                if hasattr(dep_spec.prefix, 'lib'):
+                    env.prepend_path("LD_LIBRARY_PATH", dep_spec.prefix.lib)
+                if hasattr(dep_spec.prefix, 'lib64'):
+                    env.prepend_path("LD_LIBRARY_PATH", dep_spec.prefix.lib64)
+        
         # Add Slurm binaries to PATH
         env.prepend_path("PATH", self.prefix.bin)
         env.prepend_path("PATH", self.prefix.sbin)
