@@ -502,6 +502,25 @@ Cflags: -I${{includedir}}
                 except Exception as e:
                     tty.debug(f"Could not verify InfluxDB plugin curl linkage: {e}")
 
+    def post_install(self):
+        """Post-installation setup for Slurm libraries"""
+        import os
+        
+        # Create symbolic links for internal Slurm libraries so they can be found by plugins
+        slurm_lib_dir = os.path.join(self.prefix.lib, "slurm")
+        main_lib_dir = self.prefix.lib
+        
+        # Link libslurmfull.so to main lib directory for plugin access
+        libslurmfull_src = os.path.join(slurm_lib_dir, "libslurmfull.so")
+        libslurmfull_dst = os.path.join(main_lib_dir, "libslurmfull.so")
+        
+        if os.path.exists(libslurmfull_src) and not os.path.exists(libslurmfull_dst):
+            try:
+                os.symlink(libslurmfull_src, libslurmfull_dst)
+                tty.msg(f"Created symlink: {libslurmfull_dst} -> {libslurmfull_src}")
+            except Exception as e:
+                tty.warn(f"Could not create libslurmfull.so symlink: {e}")
+
     def setup_run_environment(self, env):
         """Set up runtime environment for Slurm"""
         spec = self.spec
