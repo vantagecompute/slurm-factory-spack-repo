@@ -516,14 +516,10 @@ Cflags: -I${{includedir}}
                 except Exception as e:
                     tty.debug(f"Could not verify InfluxDB plugin curl linkage: {e}")
 
-    def post_install(self):
-        """Post-installation setup for Slurm libraries"""
-        import os
-        from spack.util.executable import which
-        
-        # Create symbolic links for internal Slurm libraries so they can be found by plugins
-        slurm_lib_dir = os.path.join(self.prefix.lib, "slurm")
-        main_lib_dir = self.prefix.lib
+        # Post-installation: Fix RUNPATH and create symlinks for libslurmfull.so
+        # This is critical for slurmstepd to find libslurmfull.so at runtime
+        slurm_lib_dir = os.path.join(prefix.lib, "slurm")
+        main_lib_dir = prefix.lib
         
         # Link libslurmfull.so to main lib directory for plugin access
         libslurmfull_src = os.path.join(slurm_lib_dir, "libslurmfull.so")
@@ -538,9 +534,9 @@ Cflags: -I${{includedir}}
         
         # Fix RUNPATH for slurmstepd to include lib/slurm directory
         # This is critical because slurmstepd needs to find libslurmfull.so at runtime
-        patchelf = which("patchelf", required=False)
+        patchelf = exe.which("patchelf", required=False)
         if patchelf:
-            slurmstepd_path = os.path.join(self.prefix.sbin, "slurmstepd")
+            slurmstepd_path = os.path.join(prefix.sbin, "slurmstepd")
             if os.path.exists(slurmstepd_path):
                 try:
                     # Add $ORIGIN/../lib/slurm to RUNPATH so slurmstepd can find libslurmfull.so
