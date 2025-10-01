@@ -185,6 +185,7 @@ class Slurm(AutotoolsPackage):
     depends_on("json-c", type=("build", "link", "run"))
     depends_on("lz4", type=("build", "link", "run"))
     depends_on("munge", type=("build", "link", "run"))
+    depends_on("ncurses", type=("build", "link", "run"))
     depends_on("lua", when="+lua", type="build")
     depends_on("openssl", type=("build", "link", "run"))
     depends_on("pkgconfig", type="build")
