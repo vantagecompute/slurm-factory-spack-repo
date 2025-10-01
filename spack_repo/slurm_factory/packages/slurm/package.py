@@ -519,6 +519,7 @@ Cflags: -I${{includedir}}
     def post_install(self):
         """Post-installation setup for Slurm libraries"""
         import os
+        from spack.util.executable import which
         
         # Create symbolic links for internal Slurm libraries so they can be found by plugins
         slurm_lib_dir = os.path.join(self.prefix.lib, "slurm")
@@ -534,6 +535,25 @@ Cflags: -I${{includedir}}
                 tty.msg(f"Created symlink: {libslurmfull_dst} -> {libslurmfull_src}")
             except Exception as e:
                 tty.warn(f"Could not create libslurmfull.so symlink: {e}")
+        
+        # Fix RUNPATH for slurmstepd to include lib/slurm directory
+        # This is critical because slurmstepd needs to find libslurmfull.so at runtime
+        patchelf = which("patchelf", required=False)
+        if patchelf:
+            slurmstepd_path = os.path.join(self.prefix.sbin, "slurmstepd")
+            if os.path.exists(slurmstepd_path):
+                try:
+                    # Add $ORIGIN/../lib/slurm to RUNPATH so slurmstepd can find libslurmfull.so
+                    current_runpath = patchelf("--print-rpath", slurmstepd_path, output=str, error=str).strip()
+                    slurm_lib_runpath = "$ORIGIN/../lib/slurm"
+                    if slurm_lib_runpath not in current_runpath:
+                        new_runpath = f"{current_runpath}:{slurm_lib_runpath}" if current_runpath else slurm_lib_runpath
+                        patchelf("--set-rpath", new_runpath, slurmstepd_path)
+                        tty.msg(f"Fixed RUNPATH for slurmstepd to include lib/slurm: {new_runpath}")
+                except Exception as e:
+                    tty.warn(f"Could not fix RUNPATH for slurmstepd: {e}")
+        else:
+            tty.warn("patchelf not available - skipping RUNPATH fix for slurmstepd")
 
     def setup_run_environment(self, env):
         """Set up runtime environment for Slurm"""
