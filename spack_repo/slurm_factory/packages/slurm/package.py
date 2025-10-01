@@ -377,8 +377,10 @@ Cflags: -I${{includedir}}
             ])
 
         if "+lua" in spec:
+            # Slurm's configure uses pkg-config for Lua detection
+            # Pass --with-lua (not a path) and let pkg-config find it via CPPFLAGS/LDFLAGS
             lua_prefix = spec["lua"].prefix
-            args.append("--with-lua={0}".format(lua_prefix))
+            args.append("--with-lua")
             cppflags.append("-I{0}/include".format(lua_prefix))
             ldflags.extend(["-L{0}/lib".format(lua_prefix), "-Wl,-rpath,{0}/lib".format(lua_prefix)])
         else:
