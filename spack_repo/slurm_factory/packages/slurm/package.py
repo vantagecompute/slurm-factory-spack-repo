@@ -186,7 +186,7 @@ class Slurm(AutotoolsPackage):
     depends_on("lz4", type=("build", "link", "run"))
     depends_on("munge", type=("build", "link", "run"))
     depends_on("ncurses", type=("build", "link", "run"))
-    depends_on("lua", when="+lua", type="build")
+    depends_on("lua", when="+lua", type=("build", "link", "run"))
     depends_on("openssl", type=("build", "link", "run"))
     depends_on("pkgconfig", type="build")
     depends_on("readline", when="+readline", type=("build", "link", "run"))
@@ -378,10 +378,11 @@ Cflags: -I${{includedir}}
 
         if "+lua" in spec:
             lua_prefix = spec["lua"].prefix
-            # Note: These should be lua-related flags, not curl flags for lua section
             args.append("--with-lua={0}".format(lua_prefix))
             cppflags.append("-I{0}/include".format(lua_prefix))
             ldflags.extend(["-L{0}/lib".format(lua_prefix), "-Wl,-rpath,{0}/lib".format(lua_prefix)])
+        else:
+            args.append("--without-lua")
 
         if "+kafka" in spec:
             kafka_prefix = spec["librdkafka"].prefix
