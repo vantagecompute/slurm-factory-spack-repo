@@ -398,6 +398,11 @@ Cflags: -I${{includedir}}
             cppflags.append("-I{0}/include".format(mysql_prefix))
             ldflags.extend(["-L{0}/lib".format(mysql_prefix), "-Wl,-rpath,{0}/lib".format(mysql_prefix)])
 
+        # Add RPATH for lib/slurm directory where libslurmfull.so resides
+        # This ensures slurmstepd and other binaries can find Slurm internal libraries
+        # Using $ORIGIN for relocatability - binaries in sbin/ will resolve to ../lib/slurm
+        ldflags.append("-Wl,-rpath,$ORIGIN/../lib/slurm")
+        
         # Add the combined flags if we have any
         if cppflags:
             args.append("CPPFLAGS={0}".format(" ".join(cppflags)))
@@ -516,40 +521,7 @@ Cflags: -I${{includedir}}
                 except Exception as e:
                     tty.debug(f"Could not verify InfluxDB plugin curl linkage: {e}")
 
-        # Post-installation: Fix RUNPATH and create symlinks for libslurmfull.so
-        # This is critical for slurmstepd to find libslurmfull.so at runtime
-        slurm_lib_dir = os.path.join(prefix.lib, "slurm")
-        main_lib_dir = prefix.lib
-        
-        # Link libslurmfull.so to main lib directory for plugin access
-        libslurmfull_src = os.path.join(slurm_lib_dir, "libslurmfull.so")
-        libslurmfull_dst = os.path.join(main_lib_dir, "libslurmfull.so")
-        
-        if os.path.exists(libslurmfull_src) and not os.path.exists(libslurmfull_dst):
-            try:
-                os.symlink(libslurmfull_src, libslurmfull_dst)
-                tty.msg(f"Created symlink: {libslurmfull_dst} -> {libslurmfull_src}")
-            except Exception as e:
-                tty.warn(f"Could not create libslurmfull.so symlink: {e}")
-        
-        # Fix RUNPATH for slurmstepd to include lib/slurm directory
-        # This is critical because slurmstepd needs to find libslurmfull.so at runtime
-        patchelf = exe.which("patchelf", required=False)
-        if patchelf:
-            slurmstepd_path = os.path.join(prefix.sbin, "slurmstepd")
-            if os.path.exists(slurmstepd_path):
-                try:
-                    # Add $ORIGIN/../lib/slurm to RUNPATH so slurmstepd can find libslurmfull.so
-                    current_runpath = patchelf("--print-rpath", slurmstepd_path, output=str, error=str).strip()
-                    slurm_lib_runpath = "$ORIGIN/../lib/slurm"
-                    if slurm_lib_runpath not in current_runpath:
-                        new_runpath = f"{current_runpath}:{slurm_lib_runpath}" if current_runpath else slurm_lib_runpath
-                        patchelf("--set-rpath", new_runpath, slurmstepd_path)
-                        tty.msg(f"Fixed RUNPATH for slurmstepd to include lib/slurm: {new_runpath}")
-                except Exception as e:
-                    tty.warn(f"Could not fix RUNPATH for slurmstepd: {e}")
-        else:
-            tty.warn("patchelf not available - skipping RUNPATH fix for slurmstepd")
+
 
     def setup_run_environment(self, env):
         """Set up runtime environment for Slurm"""
