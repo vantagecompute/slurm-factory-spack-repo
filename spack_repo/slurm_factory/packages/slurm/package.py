@@ -462,7 +462,7 @@ Cflags: -I${{includedir}}
 
         return args
     
-    @run_after('build')
+    @run_before('build')
     def patch_influxdb_makefile(self):
         """Patch influxdb plugin Makefile to not use --whole-archive for libslurm_curl"""
         # The influxdb plugin statically links libslurm_curl.a with --whole-archive
