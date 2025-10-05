@@ -321,9 +321,8 @@ Cflags: -I${{includedir}}
     def autoreconf(self, spec, prefix):
         """Run autoreconf to regenerate Makefile.in from patched Makefile.am"""
         tty.msg("Running autoreconf to regenerate build files after patching Makefile.am")
-        # Spack's AutotoolsPackage will handle calling autoreconf
-        # We just need to ensure it's enabled
-        pass
+        # Run autoreconf to regenerate configure and Makefile.in files
+        autoreconf("--install", "--verbose", "--force")
 
     def configure_args(self):
         spec = self.spec
