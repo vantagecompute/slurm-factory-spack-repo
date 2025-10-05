@@ -39,9 +39,6 @@ class Slurm(AutotoolsPackage):
     url = "https://github.com/SchedMD/slurm/archive/slurm-21-08-8-2.tar.gz"
 
     license("GPL-2.0-or-later")
-    
-    # Force autoreconf since we patch Makefile.am to install libslurm_curl
-    force_autoreconf = True
 
     version("25-05-3-1", sha256="a24d9a530e8ae1071dd3865c7260945ceffd6c65eea273d0ee21c85d8926782e")
     version("25-05-1-1", sha256="b568c761a6c9d72358addb3bb585456e73e80a02214ce375d2de8534f9ddb585")
@@ -178,11 +175,6 @@ class Slurm(AutotoolsPackage):
     # TODO: add support for lua
 
     depends_on("c", type="build")  # generated
-    
-    # Need autotools to regenerate Makefile.in from patched Makefile.am
-    depends_on("autoconf", type="build")
-    depends_on("automake", type="build")
-    depends_on("libtool", type="build")
 
     depends_on("librdkafka", when="+kafka")
 
@@ -225,9 +217,6 @@ class Slurm(AutotoolsPackage):
 
     # Apply custom patches
     #patch("slurm_prefix.patch")
-    # Install libslurm_curl as a shared library for influxdb plugin
-    # Applied to all versions to ensure curl wrapper symbols are available
-    patch("install-libslurm-curl.patch")
 
     executables = ["^srun$", "^salloc$"]
 
@@ -317,12 +306,6 @@ Cflags: -I${{includedir}}
             tty.warn(f"curl-config not found at {curl_config}")
         
         tty.msg(f"Set LIBCURL and LIBCURL_CPPFLAGS environment variables")
-
-    def autoreconf(self, spec, prefix):
-        """Run autoreconf to regenerate Makefile.in from patched Makefile.am"""
-        tty.msg("Running autoreconf to regenerate build files after patching Makefile.am")
-        # Run autoreconf to regenerate configure and Makefile.in files
-        autoreconf("--install", "--verbose", "--force")
 
     def configure_args(self):
         spec = self.spec
@@ -478,6 +461,25 @@ Cflags: -I${{includedir}}
             args.append("--sysconfdir={0}".format(sysconfdir))
 
         return args
+    
+    @run_after('build')
+    def patch_influxdb_makefile(self):
+        """Patch influxdb plugin Makefile to not use --whole-archive for libslurm_curl"""
+        # The influxdb plugin statically links libslurm_curl.a with --whole-archive
+        # This causes duplicate symbols. Remove the static linking.
+        tty.msg("Patching influxdb plugin Makefile to avoid static libslurm_curl linking")
+        
+        influxdb_makefile = join_path(
+            "src", "plugins", "acct_gather_profile", "influxdb", "Makefile"
+        )
+        
+        # Remove the --whole-archive static linking of libslurm_curl
+        filter_file(
+            r'-Wl,--whole-archive.*libslurm_curl\.a.*-Wl,--no-whole-archive',
+            '',
+            influxdb_makefile,
+            string=True
+        )
 
     def install(self, spec, prefix):
         make("install")
