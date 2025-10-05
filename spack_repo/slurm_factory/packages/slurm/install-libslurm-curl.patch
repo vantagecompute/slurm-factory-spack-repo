@@ -1,0 +1,18 @@
+diff --git a/src/curl/Makefile.am b/src/curl/Makefile.am
+index 1234567..abcdefg 100644
+--- a/src/curl/Makefile.am
++++ b/src/curl/Makefile.am
+@@ -5,9 +5,11 @@ AUTOMAKE_OPTIONS = foreign
+ AM_CPPFLAGS = -I$(top_srcdir)
+ 
+ if WITH_CURL
+-
+-noinst_LTLIBRARIES = libslurm_curl.la
++# Install libslurm_curl so plugins can link against it at runtime
++lib_LTLIBRARIES = libslurm_curl.la
+ libslurm_curl_la_SOURCES = slurm_curl.c slurm_curl.h
+ libslurm_curl_la_LIBADD = $(LIB_CURL)
++# Add version info for the shared library
++libslurm_curl_la_LDFLAGS = -version-info @SLURM_API_CURRENT@:@SLURM_API_REVISION@:@SLURM_API_AGE@
+ 
+ force:
