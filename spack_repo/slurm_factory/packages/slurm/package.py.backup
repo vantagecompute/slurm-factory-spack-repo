@@ -15,6 +15,7 @@ import re
 import os
 
 import spack.util.executable as exe
+import spack.llnl.util.tty as tty
 from spack.package import *
 
 from spack_repo.builtin.build_systems.autotools import AutotoolsPackage
@@ -39,6 +40,7 @@ class Slurm(AutotoolsPackage):
 
     license("GPL-2.0-or-later")
 
+    version("25-05-3-1", sha256="a24d9a530e8ae1071dd3865c7260945ceffd6c65eea273d0ee21c85d8926782e")
     version("25-05-1-1", sha256="b568c761a6c9d72358addb3bb585456e73e80a02214ce375d2de8534f9ddb585")
     version("24-11-6-1", sha256="282708483326f381eb001a14852a1a82e65e18f37b62b7a5f4936c0ed443b600")
     version(
@@ -176,31 +178,36 @@ class Slurm(AutotoolsPackage):
 
     depends_on("librdkafka", when="+kafka")
 
-    depends_on("mysql@8.0.35 +client_only", type=("build", "link"))
-    depends_on("curl libs=shared,static +nghttp2 +libssh2", type=("build", "link"))
-    depends_on("glib")
-    depends_on("json-c")
-    depends_on("lz4")
-    depends_on("munge")
-    depends_on("lua", when="+lua", type="build")
-    depends_on("openssl")
+    depends_on("mysql@8.0.35 +client_only", type=("build", "link", "run"))
+    depends_on("curl libs=shared,static +nghttp2 +libssh2", type=("build", "link", "run"))
+    depends_on("libssh2", type=("build", "link", "run"))
+    depends_on("glib", type=("build", "link", "run"))
+    depends_on("json-c", type=("build", "link", "run"))
+    depends_on("lz4", type=("build", "link", "run"))
+    depends_on("munge", type=("build", "link", "run"))
+    depends_on("ncurses", type=("build", "link", "run"))
+    depends_on("lua", when="+lua", type=("build", "link", "run"))
+    depends_on("openssl", type=("build", "link", "run"))
     depends_on("pkgconfig", type="build")
-    depends_on("readline", when="+readline")
-    depends_on("zlib-api")
+    depends_on("readline", when="+readline", type=("build", "link", "run"))
+    depends_on("zlib-api", type=("build", "link", "run"))
 
-    depends_on("gtkplus", when="+gtk")
-    depends_on("hdf5", when="+hdf5")
-    depends_on("hwloc", when="+hwloc")
-    depends_on("mariadb", when="+mariadb")
+    depends_on("gtkplus", when="+gtk", type=("build", "link", "run"))
+    depends_on("hdf5", when="+hdf5", type=("build", "link", "run"))
+    depends_on("hwloc", when="+hwloc", type=("build", "link", "run"))
+    depends_on("mariadb", when="+mariadb", type=("build", "link", "run"))
 
-    depends_on("pmix@:5", when="@22-05:+pmix")
-    depends_on("pmix@:3", when="@20-11:21-08+pmix")
-    depends_on("pmix@:2", when="@19-05:20-02+pmix")
-    depends_on("pmix@:1", when="@:18+pmix")
+    # JWT library is needed for auth plugins, not just REST daemon
+    depends_on("libjwt", type=("build", "link", "run"))
+    
+    depends_on("pmix@:5", when="@22-05:+pmix", type=("build", "link", "run"))
+    depends_on("pmix@:3", when="@20-11:21-08+pmix", type=("build", "link", "run"))
+    depends_on("pmix@:2", when="@19-05:20-02+pmix", type=("build", "link", "run"))
+    depends_on("pmix@:1", when="@:18+pmix", type=("build", "link", "run"))
 
     depends_on("http-parser", when="+restd")
     depends_on("libyaml", when="+restd")
-    depends_on("libjwt", when="+restd")
+    # Note: libjwt dependency moved to unconditional above since auth plugins need it
 
     depends_on("cuda", when="+nvml")
     depends_on("dbus", when="+cgroup")
@@ -226,6 +233,79 @@ class Slurm(AutotoolsPackage):
                 wrapper_flags = ["-fcommon"]
 
         return (wrapper_flags, None, flags)
+
+
+    def setup_build_environment(self, env):
+        """Setup build environment including creating missing libcurl.pc file"""
+        spec = self.spec
+        curl_prefix = spec["curl"].prefix
+        
+        tty.msg(f"Setting up build environment for Slurm with curl at {curl_prefix}")
+        
+        # Create libcurl.pc file in a writable temporary location
+        # since the curl installation directory is read-only
+        build_dir = self.stage.path if hasattr(self, 'stage') else "/tmp"
+        temp_pkgconfig_dir = os.path.join(build_dir, "temp_pkgconfig")
+        libcurl_pc = os.path.join(temp_pkgconfig_dir, "libcurl.pc")
+        
+        tty.msg(f"Creating temporary libcurl.pc at {libcurl_pc}")
+        
+        try:
+            os.makedirs(temp_pkgconfig_dir, exist_ok=True)
+            tty.msg(f"Created temporary pkgconfig directory at {temp_pkgconfig_dir}")
+            
+            # Create libcurl.pc content similar to Ubuntu's version
+            pc_content = f"""prefix={curl_prefix}
+exec_prefix=${{prefix}}
+libdir=${{prefix}}/lib
+includedir=${{prefix}}/include
+
+Name: libcurl
+URL: https://curl.se/
+Description: Library to transfer files with ftp, http, etc.
+Version: 8.15.0
+Libs: -L${{libdir}} -lcurl
+Cflags: -I${{includedir}}
+"""
+            
+            with open(libcurl_pc, "w") as f:
+                f.write(pc_content)
+            
+            tty.msg(f"SUCCESS: Created libcurl.pc at {libcurl_pc}")
+            
+            # Verify the file was created and is readable
+            if os.path.exists(libcurl_pc):
+                with open(libcurl_pc, "r") as f:
+                    content = f.read()
+                    tty.msg(f"Verified libcurl.pc content ({len(content)} chars)")
+            else:
+                tty.error(f"FAILED to create libcurl.pc at {libcurl_pc}")
+                
+        except Exception as e:
+            tty.error(f"ERROR creating libcurl.pc: {e}")
+        
+        # Ensure PKG_CONFIG_PATH includes our temporary curl location FIRST
+        env.prepend_path("PKG_CONFIG_PATH", temp_pkgconfig_dir)
+        tty.msg(f"Added {temp_pkgconfig_dir} to PKG_CONFIG_PATH")
+        
+        # Also add the curl prefix to PATH to ensure curl-config is found
+        env.prepend_path("PATH", os.path.join(curl_prefix, "bin"))
+        tty.msg(f"Added {curl_prefix}/bin to PATH")
+        
+        # Set environment variables for autotools detection
+        env.set("LIBCURL", f"-L{curl_prefix}/lib -lcurl")
+        env.set("LIBCURL_CPPFLAGS", f"-I{curl_prefix}/include")
+        
+        # Set CURL_CONFIG explicitly
+        curl_config = os.path.join(curl_prefix, "bin", "curl-config")
+        if os.path.exists(curl_config):
+            env.set("CURL_CONFIG", curl_config)
+            tty.msg(f"Set CURL_CONFIG to {curl_config}")
+        else:
+            tty.warn(f"curl-config not found at {curl_config}")
+        
+        tty.msg(f"Set LIBCURL and LIBCURL_CPPFLAGS environment variables")
+
 
     def configure_args(self):
         spec = self.spec
@@ -260,18 +340,9 @@ class Slurm(AutotoolsPackage):
                 f"curl-config not found at {curl_config_path}. Please ensure curl was built with config script."
             )
 
-        # Set PATH to include curl-config
-        env_path = os.environ.get("PATH", "")
-        curl_bin_dir = os.path.join(curl_prefix, "bin")
-        if curl_bin_dir not in env_path:
-            os.environ["PATH"] = f"{curl_bin_dir}:{env_path}"
-
         # Force curl detection with explicit path
         args.append("--with-libcurl={0}".format(curl_prefix))
 
-        # Set environment variables that LIBCURL_CHECK_CONFIG looks for
-        os.environ["LIBCURL"] = f"-L{curl_prefix}/lib -lcurl"
-        os.environ["LIBCURL_CPPFLAGS"] = f"-I{curl_prefix}/include"
 
         cppflags.append("-I{0}/include".format(curl_prefix))
         ldflags.extend(["-L{0}/lib".format(curl_prefix), "-Wl,-rpath,{0}/lib".format(curl_prefix)])
@@ -306,11 +377,14 @@ class Slurm(AutotoolsPackage):
             ])
 
         if "+lua" in spec:
+            # Slurm's configure uses pkg-config for Lua detection
+            # Pass --with-lua (not a path) and let pkg-config find it via CPPFLAGS/LDFLAGS
             lua_prefix = spec["lua"].prefix
-            # Note: These should be lua-related flags, not curl flags for lua section
-            args.append("--with-lua={0}".format(lua_prefix))
+            args.append("--with-lua")
             cppflags.append("-I{0}/include".format(lua_prefix))
             ldflags.extend(["-L{0}/lib".format(lua_prefix), "-Wl,-rpath,{0}/lib".format(lua_prefix)])
+        else:
+            args.append("--without-lua")
 
         if "+kafka" in spec:
             kafka_prefix = spec["librdkafka"].prefix
@@ -324,6 +398,11 @@ class Slurm(AutotoolsPackage):
             cppflags.append("-I{0}/include".format(mysql_prefix))
             ldflags.extend(["-L{0}/lib".format(mysql_prefix), "-Wl,-rpath,{0}/lib".format(mysql_prefix)])
 
+        # Add RPATH for lib/slurm directory where libslurmfull.so resides
+        # This ensures slurmstepd and other binaries can find Slurm internal libraries
+        # Using $ORIGIN for relocatability - binaries in sbin/ will resolve to ../lib/slurm
+        ldflags.append("-Wl,-rpath,$ORIGIN/../lib/slurm")
+        
         # Add the combined flags if we have any
         if cppflags:
             args.append("CPPFLAGS={0}".format(" ".join(cppflags)))
@@ -346,10 +425,18 @@ class Slurm(AutotoolsPackage):
         else:
             args.append("--without-pmix")
 
+        # Always include JWT since auth plugins need it
+        args.append("--with-jwt={0}".format(spec["libjwt"].prefix))
+
+        # Explicitly enable InfluxDB support with curl when variant is enabled
+        if "+influxdb" in spec:
+            args.append("--with-libcurl={0}".format(spec["curl"].prefix))
+        else:
+            args.append("--without-libcurl")
+
         if "+restd" in spec:
             args.append("--enable-slurmrestd")
             args.append("--with-http-parser={0}".format(spec["http-parser"].prefix))
-            args.append("--with-jwt={0}".format(spec["libjwt"].prefix))
         else:
             args.append("--disable-slurmrestd")
    
@@ -381,6 +468,9 @@ class Slurm(AutotoolsPackage):
         # as part of main build process when curl is available, not manually built
         # See https://github.com/SchedMD/slurm/blob/master/debian/control - libcurl4-openssl-dev
         # is build dependency and plugins are integrated into main package
+
+        if spec.satisfies("+influxdb"):
+            make("-C", "src/plugins/acct_gather_profile/influxdb", "install")
 
         if self.spec.satisfies("@:24-11-6-1"):
             if spec.satisfies("+certs"):
@@ -430,3 +520,29 @@ class Slurm(AutotoolsPackage):
                             tty.warn("WARNING: InfluxDB plugin may not be linked against curl")
                 except Exception as e:
                     tty.debug(f"Could not verify InfluxDB plugin curl linkage: {e}")
+
+
+
+    def setup_run_environment(self, env):
+        """Set up runtime environment for Slurm"""
+        spec = self.spec
+        
+        # Add Slurm lib directories to library path
+        env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib)
+        env.prepend_path("LD_LIBRARY_PATH", os.path.join(self.prefix.lib, "slurm"))
+        
+        # Add runtime dependency library paths
+        for dep_name in ["curl", "libssh2", "openssl", "libjwt", "munge", "json-c", "lz4", "glib"]:
+            if dep_name in spec:
+                dep_spec = spec[dep_name]
+                if hasattr(dep_spec.prefix, 'lib'):
+                    env.prepend_path("LD_LIBRARY_PATH", dep_spec.prefix.lib)
+                if hasattr(dep_spec.prefix, 'lib64'):
+                    env.prepend_path("LD_LIBRARY_PATH", dep_spec.prefix.lib64)
+        
+        # Add Slurm binaries to PATH
+        env.prepend_path("PATH", self.prefix.bin)
+        env.prepend_path("PATH", self.prefix.sbin)
+        
+        # Set SLURM_ROOT for tools that need it
+        env.set("SLURM_ROOT", self.prefix)

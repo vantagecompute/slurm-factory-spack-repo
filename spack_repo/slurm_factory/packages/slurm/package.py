@@ -206,6 +206,7 @@ class Slurm(AutotoolsPackage):
     depends_on("pmix@:1", when="@:18+pmix", type=("build", "link", "run"))
 
     depends_on("http-parser", when="+restd")
+    depends_on("http-parser", when="+influxdb")  # InfluxDB plugin needs http-parser for REST API
     depends_on("libyaml", when="+restd")
     # Note: libjwt dependency moved to unconditional above since auth plugins need it
 
@@ -366,10 +367,12 @@ Cflags: -I${{includedir}}
             ldflags.extend(["-lcurl"])
             # Force InfluxDB plugin to use direct curl API instead of slurm wrappers
             # This matches how Ubuntu builds the plugin
+            # Let Slurm build its curl wrapper functions normally
+            # The influxdb plugin requires slurm_curl_init/fini/request symbols
             cppflags.extend([
                 "-DHAVE_LIBCURL=1",
-                "-DUSE_DIRECT_CURL_CALLS=1",
-                "-DSLURM_NO_CURL_WRAPPER=1"
+                # REMOVED: "-DUSE_DIRECT_CURL_CALLS=1"  - non-standard, prevents wrapper compilation
+                # REMOVED: "-DSLURM_NO_CURL_WRAPPER=1"  - prevents slurm_curl_* from being exported
             ])
             args.extend([
                 "INFLUXDB_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
