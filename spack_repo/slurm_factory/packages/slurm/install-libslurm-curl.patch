@@ -1,6 +1,6 @@
 --- a/src/curl/Makefile.in
 +++ b/src/curl/Makefile.in
-@@ -327,6 +327,7 @@ top_builddir = @top_builddir@
+@@ -485,9 +485,10 @@ top_builddir = @top_builddir@
  top_srcdir = @top_srcdir@
  AUTOMAKE_OPTIONS = foreign
  AM_CPPFLAGS = -I$(top_srcdir)
@@ -10,5 +10,7 @@
  @WITH_CURL_TRUE@libslurm_curl_la_LIBADD = $(LIB_CURL)
 +@WITH_CURL_TRUE@libslurm_curl_la_LDFLAGS = -version-info @SLURM_API_CURRENT@:@SLURM_API_REVISION@:@SLURM_API_AGE@
  all: all-am
+ 
+ .SUFFIXES:
 
 
