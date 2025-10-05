@@ -1,37 +1,6 @@
-diff --git a/src/curl/Makefile.in b/src/curl/Makefile.in
-index 1234567..abcdefg 100644
 --- a/src/curl/Makefile.in
 +++ b/src/curl/Makefile.in
-@@ -89,7 +89,7 @@ PRE_UNINSTALL = :
- POST_UNINSTALL = :
- build_triplet = @build@
- host_triplet = @host@
--@WITH_CURL_TRUE@am__append_1 = libslurm_curl.la
-+@WITH_CURL_TRUE@am__append_1 = 
- subdir = src/curl
- ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
- am__aclocal_m4_deps = $(top_srcdir)/auxdir/acx_pthread.m4 \
-@@ -149,7 +149,8 @@ am__uninstall_files_from_dir = { \
-       || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
-            $(am__cd) $$dir && rm -f $$files; }; \
-   }
--LTLIBRARIES = $(noinst_LTLIBRARIES)
-+LTLIBRARIES = $(lib_LTLIBRARIES)
-+@WITH_CURL_TRUE@am__DEPENDENCIES_1 =
- libslurm_curl_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
- am__libslurm_curl_la_SOURCES_DIST = slurm_curl.c slurm_curl.h
- @WITH_CURL_TRUE@am_libslurm_curl_la_OBJECTS =  \
-@@ -159,6 +160,9 @@ libslurm_curl_la_OBJECTS = $(am_libslurm_curl_la_OBJECTS)
- AM_V_lt = $(am__v_lt_@AM_V@)
- am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
- am__v_lt_0 = --silent
-+@WITH_CURL_TRUE@libslurm_curl_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
-+@WITH_CURL_TRUE@	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
-+@WITH_CURL_TRUE@	$(CCLD) $(AM_CFLAGS) $(CFLAGS) $(libslurm_curl_la_LDFLAGS) $(LDFLAGS) -o $@
- AM_V_P = $(am__v_P_@AM_V@)
- am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
- am__v_P_0 = false
-@@ -327,12 +331,15 @@ top_builddir = @top_builddir@
+@@ -327,6 +327,7 @@ top_builddir = @top_builddir@
  top_srcdir = @top_srcdir@
  AUTOMAKE_OPTIONS = foreign
  AM_CPPFLAGS = -I$(top_srcdir)
@@ -41,6 +10,5 @@ index 1234567..abcdefg 100644
  @WITH_CURL_TRUE@libslurm_curl_la_LIBADD = $(LIB_CURL)
 +@WITH_CURL_TRUE@libslurm_curl_la_LDFLAGS = -version-info @SLURM_API_CURRENT@:@SLURM_API_REVISION@:@SLURM_API_AGE@
  all: all-am
- 
- .SUFFIXES:
- .SUFFIXES: .c .lo .o .obj
+
+
