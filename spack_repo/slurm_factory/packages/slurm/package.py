@@ -218,7 +218,8 @@ class Slurm(AutotoolsPackage):
     # Apply custom patches
     #patch("slurm_prefix.patch")
     # Install libslurm_curl as a shared library for influxdb plugin
-    patch("install-libslurm-curl.patch", when="@23-02:")
+    # Applied to all versions to ensure curl wrapper symbols are available
+    patch("install-libslurm-curl.patch")
 
     executables = ["^srun$", "^salloc$"]
 
