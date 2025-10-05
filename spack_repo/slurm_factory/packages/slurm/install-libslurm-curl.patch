@@ -1,16 +1,14 @@
---- a/src/curl/Makefile.in
-+++ b/src/curl/Makefile.in
-@@ -485,9 +485,10 @@ top_builddir = @top_builddir@
- top_srcdir = @top_srcdir@
- AUTOMAKE_OPTIONS = foreign
+--- a/src/curl/Makefile.am
++++ b/src/curl/Makefile.am
+@@ -3,6 +3,7 @@ AUTOMAKE_OPTIONS = foreign
  AM_CPPFLAGS = -I$(top_srcdir)
--@WITH_CURL_TRUE@noinst_LTLIBRARIES = libslurm_curl.la
-+@WITH_CURL_TRUE@lib_LTLIBRARIES = libslurm_curl.la
- @WITH_CURL_TRUE@libslurm_curl_la_SOURCES = slurm_curl.c slurm_curl.h
- @WITH_CURL_TRUE@libslurm_curl_la_LIBADD = $(LIB_CURL)
-+@WITH_CURL_TRUE@libslurm_curl_la_LDFLAGS = -version-info @SLURM_API_CURRENT@:@SLURM_API_REVISION@:@SLURM_API_AGE@
- all: all-am
  
- .SUFFIXES:
+ if WITH_CURL
+-noinst_LTLIBRARIES = libslurm_curl.la
++lib_LTLIBRARIES = libslurm_curl.la
+ libslurm_curl_la_SOURCES = slurm_curl.c slurm_curl.h
+ libslurm_curl_la_LIBADD = $(LIB_CURL)
++libslurm_curl_la_LDFLAGS = -version-info @SLURM_API_CURRENT@:@SLURM_API_REVISION@:@SLURM_API_AGE@
+ endif
 
 
