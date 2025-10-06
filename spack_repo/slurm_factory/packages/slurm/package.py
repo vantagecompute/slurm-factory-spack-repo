@@ -292,22 +292,15 @@ Cflags: -I${{includedir}}
         tty.msg(f"Added {temp_pkgconfig_dir} to PKG_CONFIG_PATH")
         
         # Also add the curl prefix to PATH to ensure curl-config is found
+        # This is CRITICAL - the LIBCURL_CHECK_CONFIG macro in configure.ac needs
+        # to find curl-config in PATH to properly set WITH_CURL conditional
         env.prepend_path("PATH", os.path.join(curl_prefix, "bin"))
-        tty.msg(f"Added {curl_prefix}/bin to PATH")
+        tty.msg(f"Added {curl_prefix}/bin to PATH for curl-config detection")
         
-        # Set environment variables for autotools detection
-        env.set("LIBCURL", f"-L{curl_prefix}/lib -lcurl")
-        env.set("LIBCURL_CPPFLAGS", f"-I{curl_prefix}/include")
-        
-        # Set CURL_CONFIG explicitly
-        curl_config = os.path.join(curl_prefix, "bin", "curl-config")
-        if os.path.exists(curl_config):
-            env.set("CURL_CONFIG", curl_config)
-            tty.msg(f"Set CURL_CONFIG to {curl_config}")
-        else:
-            tty.warn(f"curl-config not found at {curl_config}")
-        
-        tty.msg(f"Set LIBCURL and LIBCURL_CPPFLAGS environment variables")
+        # DO NOT set LIBCURL or LIBCURL_CPPFLAGS environment variables!
+        # The configure script's LIBCURL_CHECK_CONFIG macro needs to run curl-config
+        # itself to properly detect features and set the WITH_CURL conditional.
+        # Setting these variables prevents proper detection and breaks influxdb plugin.
 
     def configure_args(self):
         spec = self.spec
@@ -342,43 +335,17 @@ Cflags: -I${{includedir}}
                 f"curl-config not found at {curl_config_path}. Please ensure curl was built with config script."
             )
 
-        # Force curl detection with explicit path
+        # Pass --with-libcurl to trigger LIBCURL_CHECK_CONFIG macro
+        # The macro will find curl-config in PATH (set in setup_build_environment)
+        # and properly set LIBCURL, LIBCURL_CPPFLAGS, and WITH_CURL conditional
         args.append("--with-libcurl={0}".format(curl_prefix))
 
-
+        # Add curl paths to general CPPFLAGS and LDFLAGS for fallback
         cppflags.append("-I{0}/include".format(curl_prefix))
         ldflags.extend(["-L{0}/lib".format(curl_prefix), "-Wl,-rpath,{0}/lib".format(curl_prefix)])
-
-        # Follow SchedMD's build approach - ensure curl is available as build dependency
-        # SchedMD uses libcurl4-openssl-dev as build-depends and builds all plugins integrated
-        # This should make InfluxDB plugin use direct curl calls like the official build
-        args.extend([
-            "CURL_CFLAGS=-I{0}/include".format(curl_prefix),
-            "CURL_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
-            "LIBCURL_CFLAGS=-I{0}/include".format(curl_prefix),
-            "LIBCURL_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
-            # Ensure curl is available during plugin compilation
-            "LDFLAGS=-L{0}/lib -Wl,-rpath,{0}/lib".format(curl_prefix),
-            "CPPFLAGS=-I{0}/include".format(curl_prefix),
-        ])
         
-        # Ensure InfluxDB plugin links directly to curl when enabled
-        if "+influxdb" in spec:
-            # Add specific LDFLAGS to force direct curl linking for InfluxDB plugin
-            ldflags.extend(["-lcurl"])
-            # Force InfluxDB plugin to use direct curl API instead of slurm wrappers
-            # This matches how Ubuntu builds the plugin
-            # Let Slurm build its curl wrapper functions normally
-            # The influxdb plugin requires slurm_curl_init/fini/request symbols
-            cppflags.extend([
-                "-DHAVE_LIBCURL=1",
-                # REMOVED: "-DUSE_DIRECT_CURL_CALLS=1"  - non-standard, prevents wrapper compilation
-                # REMOVED: "-DSLURM_NO_CURL_WRAPPER=1"  - prevents slurm_curl_* from being exported
-            ])
-            args.extend([
-                "INFLUXDB_LIBS=-L{0}/lib -lcurl".format(curl_prefix),
-                "INFLUXDB_CFLAGS=-I{0}/include -DHAVE_LIBCURL=1".format(curl_prefix),
-            ])
+        # Note: influxdb plugin will automatically work once WITH_CURL is properly set
+        # The plugin depends on libslurm_curl.la which provides slurm_curl_* functions
 
         if "+lua" in spec:
             # Slurm's configure uses pkg-config for Lua detection
