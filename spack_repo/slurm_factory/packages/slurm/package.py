@@ -218,7 +218,9 @@ class Slurm(AutotoolsPackage):
     depends_on("rocm-smi-lib", when="+rsmi")
 
     # Apply custom patches
-    #patch("slurm_prefix.patch")
+    # Patch to build libslurm_curl as shared library instead of noinst static
+    # This allows plugins to link against it at runtime for slurm_curl_* symbols
+    patch("build-libslurm-curl-shared.patch", when="+influxdb")
 
     executables = ["^srun$", "^salloc$"]
 
