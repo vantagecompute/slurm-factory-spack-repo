@@ -40,9 +40,6 @@ class Slurm(AutotoolsPackage):
 
     license("GPL-2.0-or-later")
 
-    # Force autoreconf because we patch Makefile.am files
-    force_autoreconf = True
-
     version("25-05-3-1", sha256="a24d9a530e8ae1071dd3865c7260945ceffd6c65eea273d0ee21c85d8926782e")
     version("25-05-1-1", sha256="b568c761a6c9d72358addb3bb585456e73e80a02214ce375d2de8534f9ddb585")
     version("24-11-6-1", sha256="282708483326f381eb001a14852a1a82e65e18f37b62b7a5f4936c0ed443b600")
@@ -178,11 +175,6 @@ class Slurm(AutotoolsPackage):
     # TODO: add support for lua
 
     depends_on("c", type="build")  # generated
-
-    # Autotools dependencies for autoreconf
-    depends_on("autoconf", type="build")
-    depends_on("automake", type="build")
-    depends_on("libtool", type="build")
 
     depends_on("librdkafka", when="+kafka")
 
@@ -470,41 +462,54 @@ Cflags: -I${{includedir}}
 
         return args
     
-    @run_before('autoreconf')
-    def patch_curl_makefile(self):
-        """Patch libslurm_curl to be installed as a shared library"""
-        # The influxdb and other plugins need slurm_curl_* symbols at runtime
-        # Change libslurm_curl from noinst_LTLIBRARIES to lib_LTLIBRARIES so it's installed
-        # Use conditional assignment with proper automake syntax
-        tty.msg("Patching src/curl/Makefile.am to install libslurm_curl as shared library")
+    @run_after('install')
+    def install_curl_library(self):
+        """Install libslurm_curl shared library after main installation
         
-        curl_makefile_am = join_path("src", "curl", "Makefile.am")
+        The influxdb and other plugins need slurm_curl_* symbols at runtime.
+        By default, libslurm_curl is built but not installed (noinst_LTLIBRARIES).
+        We manually install it to make these symbols available to plugins.
         
-        # Read the entire file and replace
-        # Use EXTRA_LTLIBRARIES pattern which is the proper way to conditionally build libraries
-        new_content = """# Makefile for slurm curl library
-
-AUTOMAKE_OPTIONS = foreign
-
-AM_CPPFLAGS = -I$(top_srcdir)
-
-# Conditionally build and install libslurm_curl
-if WITH_CURL
-lib_LTLIBRARIES = libslurm_curl.la
-else
-lib_LTLIBRARIES =
-endif
-
-libslurm_curl_la_SOURCES = slurm_curl.c slurm_curl.h
-libslurm_curl_la_LIBADD = $(LIB_CURL)
-
-force:
-$(libslurm_curl_la_LIBADD) : force
-\t@cd `dirname $@` && $(MAKE) `basename $@`
-"""
+        This approach mimics what RPM packaging does without modifying the build system.
+        """
+        import glob
+        import shutil
         
-        with open(curl_makefile_am, 'w') as f:
-            f.write(new_content)
+        tty.msg("Installing libslurm_curl shared library for plugin support")
+        
+        # Find the built library in the build tree
+        build_dir = join_path(self.stage.source_path, "src", "curl")
+        libs_dir = join_path(build_dir, ".libs")
+        
+        # Look for the shared library files
+        la_file = join_path(build_dir, "libslurm_curl.la")
+        so_files = glob.glob(join_path(libs_dir, "libslurm_curl.so*"))
+        
+        if not os.path.exists(la_file):
+            tty.warn(f"libslurm_curl.la not found at {la_file}")
+            tty.warn("Plugins may fail to load - curl support might not be enabled")
+            return
+        
+        # Install the .la file
+        lib_dir = join_path(self.prefix, "lib")
+        tty.msg(f"Copying {la_file} to {lib_dir}")
+        shutil.copy2(la_file, lib_dir)
+        
+        # Install all .so* files (including symlinks)
+        for so_file in so_files:
+            tty.msg(f"Copying {os.path.basename(so_file)} to {lib_dir}")
+            if os.path.islink(so_file):
+                # Recreate symlink
+                link_target = os.readlink(so_file)
+                link_path = join_path(lib_dir, os.path.basename(so_file))
+                if os.path.exists(link_path):
+                    os.remove(link_path)
+                os.symlink(link_target, link_path)
+            else:
+                # Copy actual library file
+                shutil.copy2(so_file, lib_dir)
+        
+        tty.msg("libslurm_curl installation complete")
 
     def install(self, spec, prefix):
         make("install")
