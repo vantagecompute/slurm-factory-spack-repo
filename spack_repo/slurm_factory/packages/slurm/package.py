@@ -179,7 +179,9 @@ class Slurm(AutotoolsPackage):
     depends_on("librdkafka", when="+kafka")
 
     depends_on("mysql@8.0.35 +client_only", type=("build", "link", "run"))
-    depends_on("curl libs=shared,static +nghttp2 +libssh2", type=("build", "link", "run"))
+    # curl with LDAP support is REQUIRED for Slurm's WITH_CURL conditional to be set
+    # Without LDAP, libslurm_curl won't be built and influxdb plugin will fail with undefined symbols
+    depends_on("curl libs=shared,static +nghttp2 +libssh2 +ldap", type=("build", "link", "run"))
     depends_on("libssh2", type=("build", "link", "run"))
     depends_on("glib", type=("build", "link", "run"))
     depends_on("json-c", type=("build", "link", "run"))
