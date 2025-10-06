@@ -40,6 +40,9 @@ class Slurm(AutotoolsPackage):
 
     license("GPL-2.0-or-later")
 
+    # Force autoreconf because we patch Makefile.am files
+    force_autoreconf = True
+
     version("25-05-3-1", sha256="a24d9a530e8ae1071dd3865c7260945ceffd6c65eea273d0ee21c85d8926782e")
     version("25-05-1-1", sha256="b568c761a6c9d72358addb3bb585456e73e80a02214ce375d2de8534f9ddb585")
     version("24-11-6-1", sha256="282708483326f381eb001a14852a1a82e65e18f37b62b7a5f4936c0ed443b600")
@@ -175,6 +178,11 @@ class Slurm(AutotoolsPackage):
     # TODO: add support for lua
 
     depends_on("c", type="build")  # generated
+
+    # Autotools dependencies for autoreconf
+    depends_on("autoconf", type="build")
+    depends_on("automake", type="build")
+    depends_on("libtool", type="build")
 
     depends_on("librdkafka", when="+kafka")
 
@@ -462,22 +470,20 @@ Cflags: -I${{includedir}}
 
         return args
     
-    @run_before('build')
-    def patch_influxdb_makefile(self):
-        """Patch influxdb plugin Makefile to not use --whole-archive for libslurm_curl"""
-        # The influxdb plugin statically links libslurm_curl.a with --whole-archive
-        # This causes duplicate symbols. Remove the static linking.
-        tty.msg("Patching influxdb plugin Makefile to avoid static libslurm_curl linking")
+    @run_before('autoreconf')
+    def patch_curl_makefile(self):
+        """Patch libslurm_curl to be installed as a shared library"""
+        # The influxdb and other plugins need slurm_curl_* symbols at runtime
+        # Change libslurm_curl from noinst_LTLIBRARIES to lib_LTLIBRARIES so it's installed
+        tty.msg("Patching src/curl/Makefile.am to install libslurm_curl as shared library")
         
-        influxdb_makefile = join_path(
-            "src", "plugins", "acct_gather_profile", "influxdb", "Makefile"
-        )
+        curl_makefile_am = join_path("src", "curl", "Makefile.am")
         
-        # Remove the --whole-archive static linking of libslurm_curl
+        # Change from noinst_LTLIBRARIES to lib_LTLIBRARIES
         filter_file(
-            r'-Wl,--whole-archive.*libslurm_curl\.a.*-Wl,--no-whole-archive',
-            '',
-            influxdb_makefile,
+            r'noinst_LTLIBRARIES = libslurm_curl\.la',
+            'lib_LTLIBRARIES = libslurm_curl.la',
+            curl_makefile_am,
             string=True
         )
 
