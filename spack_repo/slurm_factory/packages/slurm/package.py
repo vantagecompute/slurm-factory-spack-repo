@@ -297,6 +297,22 @@ Cflags: -I${{includedir}}
         env.prepend_path("PATH", os.path.join(curl_prefix, "bin"))
         tty.msg(f"Added {curl_prefix}/bin to PATH for curl-config detection")
         
+        # Verify curl-config is accessible and working
+        curl_config = os.path.join(curl_prefix, "bin", "curl-config")
+        if os.path.exists(curl_config):
+            import subprocess
+            try:
+                version = subprocess.check_output([curl_config, "--version"], text=True).strip()
+                protocols = subprocess.check_output([curl_config, "--protocols"], text=True).strip()
+                tty.msg(f"curl-config check: {version}")
+                tty.msg(f"curl protocols: {protocols[:100]}...")
+                if "LDAP" in protocols:
+                    tty.msg("✓ LDAP protocol confirmed in curl")
+                else:
+                    tty.warn("✗ LDAP protocol NOT found in curl!")
+            except Exception as e:
+                tty.error(f"Failed to run curl-config: {e}")
+        
         # DO NOT set LIBCURL or LIBCURL_CPPFLAGS environment variables!
         # The configure script's LIBCURL_CHECK_CONFIG macro needs to run curl-config
         # itself to properly detect features and set the WITH_CURL conditional.
@@ -430,6 +446,33 @@ Cflags: -I${{includedir}}
             args.append("--sysconfdir={0}".format(sysconfdir))
 
         return args
+    
+    def configure(self, spec, prefix):
+        """Override configure to add diagnostics for WITH_CURL detection"""
+        # Run the standard autotools configure
+        super().configure(spec, prefix)
+        
+        # After configure runs, check if WITH_CURL was set
+        config_h = os.path.join(self.build_directory, "config.h")
+        if os.path.exists(config_h):
+            with open(config_h, "r") as f:
+                config_content = f.read()
+                if "HAVE_LIBCURL" in config_content:
+                    tty.msg("✓ HAVE_LIBCURL is defined in config.h")
+                else:
+                    tty.error("✗ HAVE_LIBCURL is NOT defined in config.h!")
+                    
+        # Check if Makefile has WITH_CURL conditional set
+        makefile = os.path.join(self.build_directory, "src/curl/Makefile")
+        if os.path.exists(makefile):
+            with open(makefile, "r") as f:
+                makefile_content = f.read()
+                if "libslurm_curl.la" in makefile_content:
+                    tty.msg("✓ libslurm_curl.la target found in src/curl/Makefile")
+                else:
+                    tty.error("✗ libslurm_curl.la target NOT found in src/curl/Makefile!")
+        else:
+            tty.error(f"✗ src/curl/Makefile does not exist!")
     
     @run_after('install')
     def install_curl_library(self):
