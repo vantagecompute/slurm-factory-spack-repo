@@ -475,17 +475,38 @@ Cflags: -I${{includedir}}
         """Patch libslurm_curl to be installed as a shared library"""
         # The influxdb and other plugins need slurm_curl_* symbols at runtime
         # Change libslurm_curl from noinst_LTLIBRARIES to lib_LTLIBRARIES so it's installed
+        # Automake requires lib_LTLIBRARIES to be unconditional, so we restructure the file
         tty.msg("Patching src/curl/Makefile.am to install libslurm_curl as shared library")
         
         curl_makefile_am = join_path("src", "curl", "Makefile.am")
         
-        # Change from noinst_LTLIBRARIES to lib_LTLIBRARIES
-        filter_file(
-            r'noinst_LTLIBRARIES = libslurm_curl\.la',
-            'lib_LTLIBRARIES = libslurm_curl.la',
-            curl_makefile_am,
-            string=True
-        )
+        # Read the entire file
+        with open(curl_makefile_am, 'r') as f:
+            content = f.read()
+        
+        # Replace the conditional structure with proper automake syntax
+        # Define lib_LTLIBRARIES unconditionally, use _SOURCES conditionally
+        new_content = """# Makefile for slurm curl library
+
+AUTOMAKE_OPTIONS = foreign
+
+AM_CPPFLAGS = -I$(top_srcdir)
+
+lib_LTLIBRARIES =
+if WITH_CURL
+lib_LTLIBRARIES += libslurm_curl.la
+endif
+
+libslurm_curl_la_SOURCES = slurm_curl.c slurm_curl.h
+libslurm_curl_la_LIBADD = $(LIB_CURL)
+
+force:
+$(libslurm_curl_la_LIBADD) : force
+\t@cd `dirname $@` && $(MAKE) `basename $@`
+"""
+        
+        with open(curl_makefile_am, 'w') as f:
+            f.write(new_content)
 
     def install(self, spec, prefix):
         make("install")
