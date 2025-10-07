@@ -1,9 +1,6 @@
 --- a/src/curl/Makefile.am
 +++ b/src/curl/Makefile.am
-@@ -4,10 +4,13 @@ AUTOMAKE_OPTIONS = foreign
- 
- AM_CPPFLAGS = -I$(top_srcdir)
- 
+@@ -7,9 +7,12 @@ AM_CPPFLAGS = -I$(top_srcdir)
  if WITH_CURL
  
 -noinst_LTLIBRARIES = libslurm_curl.la
