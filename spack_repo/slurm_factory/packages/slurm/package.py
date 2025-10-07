@@ -176,11 +176,6 @@ class Slurm(AutotoolsPackage):
 
     depends_on("c", type="build")  # generated
 
-    # Autotools needed because we force_autoreconf to regenerate Makefile.in from patched Makefile.am
-    depends_on("autoconf", type="build")
-    depends_on("automake", type="build")
-    depends_on("libtool", type="build")
-
     depends_on("librdkafka", when="+kafka")
 
     depends_on("mysql@8.0.35 +client_only", type=("build", "link", "run"))
@@ -223,13 +218,9 @@ class Slurm(AutotoolsPackage):
     depends_on("rocm-smi-lib", when="+rsmi")
 
     # Apply custom patches
-    # Patch to build libslurm_curl as shared library instead of noinst static
-    # This allows plugins to link against it at runtime for slurm_curl_* symbols
-    patch("build-libslurm-curl-shared.patch", when="+influxdb")
-    
-    # Force autoreconf when influxdb variant is enabled because we're patching Makefile.am
-    # The patch modifies src/curl/Makefile.am, so we need to regenerate Makefile.in
-    force_autoreconf = True
+    # NOTE: We don't patch Makefile.am because it requires autoreconf, which causes
+    # AM_CONDITIONAL errors. Instead, we manually build libslurm_curl.so in install phase.
+    # patch("build-libslurm-curl-shared.patch", when="+influxdb")
 
     executables = ["^srun$", "^salloc$"]
 
@@ -487,52 +478,83 @@ Cflags: -I${{includedir}}
     
     @run_after('install')
     def install_curl_library(self):
-        """Install libslurm_curl shared library after main installation
+        """Build and install libslurm_curl shared library after main installation
         
         The influxdb and other plugins need slurm_curl_* symbols at runtime.
-        By default, libslurm_curl is built but not installed (noinst_LTLIBRARIES).
-        We manually install it to make these symbols available to plugins.
+        By default, libslurm_curl is built as a convenience library (noinst_LTLIBRARIES)
+        and not installed. We manually build it as a shared library and install it.
         
-        This approach mimics what RPM packaging does without modifying the build system.
+        This approach avoids patching Makefile.am which would require autoreconf and
+        cause AM_CONDITIONAL errors.
         """
         import glob
         import shutil
+        import subprocess
         
-        tty.msg("Installing libslurm_curl shared library for plugin support")
-        
-        # Find the built library in the build tree
-        build_dir = join_path(self.stage.source_path, "src", "curl")
-        libs_dir = join_path(build_dir, ".libs")
-        
-        # Look for the shared library files
-        la_file = join_path(build_dir, "libslurm_curl.la")
-        so_files = glob.glob(join_path(libs_dir, "libslurm_curl.so*"))
-        
-        if not os.path.exists(la_file):
-            tty.warn(f"libslurm_curl.la not found at {la_file}")
-            tty.warn("Plugins may fail to load - curl support might not be enabled")
+        if not self.spec.satisfies("+influxdb"):
             return
         
-        # Install the .la file
+        tty.msg("Building and installing libslurm_curl shared library for influxdb plugin")
+        
+        # Build directory where slurm_curl.c is located
+        build_dir = join_path(self.stage.source_path, "src", "curl")
+        
+        # Check if curl support was enabled during configure
+        if not os.path.exists(join_path(build_dir, "slurm_curl.c")):
+            tty.warn("slurm_curl.c not found - curl support may not be enabled")
+            return
+        
+        # Get curl library flags
+        curl_prefix = self.spec["curl"].prefix
+        curl_libs = f"-L{curl_prefix}/lib -lcurl -Wl,-rpath,{curl_prefix}/lib"
+        
         lib_dir = join_path(self.prefix, "lib")
-        tty.msg(f"Copying {la_file} to {lib_dir}")
-        shutil.copy2(la_file, lib_dir)
+        include_dir = join_path(self.stage.source_path, "src", "common")
         
-        # Install all .so* files (including symlinks)
-        for so_file in so_files:
-            tty.msg(f"Copying {os.path.basename(so_file)} to {lib_dir}")
-            if os.path.islink(so_file):
-                # Recreate symlink
-                link_target = os.readlink(so_file)
-                link_path = join_path(lib_dir, os.path.basename(so_file))
-                if os.path.exists(link_path):
-                    os.remove(link_path)
-                os.symlink(link_target, link_path)
-            else:
-                # Copy actual library file
-                shutil.copy2(so_file, lib_dir)
+        # Compile slurm_curl.c to object file with PIC
+        obj_file = join_path(build_dir, "slurm_curl.o")
+        compile_cmd = [
+            self.compiler.cc,
+            "-fPIC",
+            "-shared",
+            f"-I{self.stage.source_path}",
+            f"-I{include_dir}",
+            f"-I{curl_prefix}/include",
+            "-c",
+            join_path(build_dir, "slurm_curl.c"),
+            "-o",
+            obj_file
+        ]
         
-        tty.msg("libslurm_curl installation complete")
+        tty.msg(f"Compiling slurm_curl.c: {' '.join(compile_cmd)}")
+        subprocess.run(compile_cmd, check=True, cwd=build_dir)
+        
+        # Link to shared library
+        so_file = join_path(lib_dir, "libslurm_curl.so.0.0.0")
+        link_cmd = [
+            self.compiler.cc,
+            "-shared",
+            "-Wl,-soname,libslurm_curl.so.0",
+            obj_file,
+            "-o",
+            so_file,
+        ] + curl_libs.split()
+        
+        tty.msg(f"Linking libslurm_curl.so: {' '.join(link_cmd)}")
+        subprocess.run(link_cmd, check=True, cwd=build_dir)
+        
+        # Create symlinks
+        os.chdir(lib_dir)
+        if os.path.exists("libslurm_curl.so.0"):
+            os.remove("libslurm_curl.so.0")
+        os.symlink("libslurm_curl.so.0.0.0", "libslurm_curl.so.0")
+        
+        if os.path.exists("libslurm_curl.so"):
+            os.remove("libslurm_curl.so")
+        os.symlink("libslurm_curl.so.0", "libslurm_curl.so")
+        
+        tty.msg("✓ libslurm_curl.so built and installed successfully")
+
 
     def install(self, spec, prefix):
         make("install")
