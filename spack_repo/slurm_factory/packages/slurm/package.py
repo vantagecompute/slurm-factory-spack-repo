@@ -221,6 +221,10 @@ class Slurm(AutotoolsPackage):
     # Patch to build libslurm_curl as shared library instead of noinst static
     # This allows plugins to link against it at runtime for slurm_curl_* symbols
     patch("build-libslurm-curl-shared.patch", when="+influxdb")
+    
+    # Force autoreconf when influxdb variant is enabled because we're patching Makefile.am
+    # The patch modifies src/curl/Makefile.am, so we need to regenerate Makefile.in
+    force_autoreconf = True
 
     executables = ["^srun$", "^salloc$"]
 
