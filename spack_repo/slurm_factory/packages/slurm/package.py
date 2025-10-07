@@ -554,6 +554,17 @@ Cflags: -I${{includedir}}
         os.symlink("libslurm_curl.so.0", "libslurm_curl.so")
         
         tty.msg("✓ libslurm_curl.so built and installed successfully")
+        
+        # Rebuild influxdb plugin now that libslurm_curl.so exists
+        # The plugin was built during main 'make install' but failed to link properly
+        # because libslurm_curl.so didn't exist yet. Rebuild it now.
+        tty.msg("Rebuilding influxdb plugin with libslurm_curl.so available")
+        plugin_dir = join_path(self.stage.source_path, "src", "plugins", "acct_gather_profile", "influxdb")
+        if os.path.exists(plugin_dir):
+            make("-C", plugin_dir, "install")
+            tty.msg("✓ influxdb plugin rebuilt and installed successfully")
+        else:
+            tty.warn(f"influxdb plugin directory not found: {plugin_dir}")
 
 
     def install(self, spec, prefix):
