@@ -176,6 +176,11 @@ class Slurm(AutotoolsPackage):
 
     depends_on("c", type="build")  # generated
 
+    # Autotools needed because we force_autoreconf to regenerate Makefile.in from patched Makefile.am
+    depends_on("autoconf", type="build")
+    depends_on("automake", type="build")
+    depends_on("libtool", type="build")
+
     depends_on("librdkafka", when="+kafka")
 
     depends_on("mysql@8.0.35 +client_only", type=("build", "link", "run"))
