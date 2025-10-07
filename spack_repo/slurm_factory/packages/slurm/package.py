@@ -560,25 +560,10 @@ Cflags: -I${{includedir}}
         make("install")
         make("-C", "contribs/pmi2", "install")
 
-        # Note: Following SchedMD approach - InfluxDB plugin should be built automatically
-        # as part of main build process when curl is available, not manually built
-        # See https://github.com/SchedMD/slurm/blob/master/debian/control - libcurl4-openssl-dev
-        # is build dependency and plugins are integrated into main package
-
-        if spec.satisfies("+influxdb"):
-            make("-C", "src/plugins/acct_gather_profile/influxdb", "install")
-
-        if self.spec.satisfies("@:24-11-6-1"):
-            if spec.satisfies("+certs"):
-                make("-C", "src/plugins/certmgr", "install")
-
-        if self.spec.satisfies("@:25-05-1-1"):
-            if spec.satisfies("+mcs"):
-                make("-C", "src/plugins/mcs", "install")
-
-            if spec.satisfies("+certs"):
-                make("-C", "src/plugins/certmgr", "install")
-                make("-C", "src/plugins/certgen", "install")
+        # Note: The main 'make install' already handles plugin installation for influxdb,
+        # certmgr, certgen, and mcs when the appropriate variants are enabled.
+        # No need for separate make commands - verified in build logs that these directories
+        # are processed during the main install phase.
 
         # Verify curl linkage by checking if slurmctld was built with curl support
         slurmctld_path = os.path.join(prefix.sbin, "slurmctld")
