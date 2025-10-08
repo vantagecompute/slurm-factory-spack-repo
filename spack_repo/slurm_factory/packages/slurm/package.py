@@ -553,13 +553,31 @@ Cflags: -I${{includedir}}
         tty.msg("✓ libslurm_curl.so built and installed successfully")
         
         # Rebuild influxdb plugin now that libslurm_curl.so exists
-        # The plugin was built during main 'make install' but failed to link properly
-        # because libslurm_curl.so didn't exist yet. Rebuild it now.
+        # The plugin needs to link against libslurm_curl.so for the slurm_curl_* symbols
         tty.msg("Rebuilding influxdb plugin with libslurm_curl.so available")
         plugin_dir = join_path(self.stage.source_path, "src", "plugins", "acct_gather_profile", "influxdb")
         if os.path.exists(plugin_dir):
-            make("-C", plugin_dir, "install")
-            tty.msg("✓ influxdb plugin rebuilt and installed successfully")
+            # Clean the plugin directory to force rebuild
+            make("-C", plugin_dir, "clean")
+            
+            # Rebuild with LDFLAGS pointing to libslurm_curl.so
+            ldflags = f"-L{lib_dir} -lslurm_curl -Wl,-rpath,{lib_dir}"
+            make("-C", plugin_dir, f"LDFLAGS={ldflags}", "install")
+            tty.msg("✓ influxdb plugin rebuilt and linked against libslurm_curl.so")
+            
+            # Verify the plugin was linked correctly
+            plugin_so = join_path(self.prefix.lib, "slurm", "acct_gather_profile_influxdb.so")
+            if os.path.exists(plugin_so):
+                try:
+                    ldd = exe.which("ldd")
+                    if ldd:
+                        output = ldd(plugin_so, output=str, error=str)
+                        if "libslurm_curl" in output:
+                            tty.msg("✓ Verified: influxdb plugin linked against libslurm_curl.so")
+                        else:
+                            tty.warn("WARNING: influxdb plugin may not be linked against libslurm_curl.so")
+                except Exception as e:
+                    tty.debug(f"Could not verify plugin linkage: {e}")
         else:
             tty.warn(f"influxdb plugin directory not found: {plugin_dir}")
 
