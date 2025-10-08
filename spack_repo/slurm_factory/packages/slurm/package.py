@@ -208,7 +208,7 @@ class Slurm(AutotoolsPackage):
     depends_on("pmix@:1", when="@:18+pmix", type=("build", "link", "run"))
 
     depends_on("http-parser", when="+restd")
-    depends_on("http-parser", when="+influxdb")  # InfluxDB plugin needs http-parser for REST API
+    # Note: http-parser also needed for influxdb plugin (always built with curl)
     depends_on("libyaml", when="+restd")
     # Note: libjwt dependency moved to unconditional above since auth plugins need it
 
@@ -588,27 +588,26 @@ Cflags: -I${{includedir}}
             except Exception as e:
                 tty.debug(f"Could not verify curl linkage: {e}")
 
-        # Verify InfluxDB plugin was built if requested
-        if "+influxdb" in spec:
-            influxdb_plugin = os.path.join(prefix.lib, "slurm", "acct_gather_profile_influxdb.so")
-            if not os.path.exists(influxdb_plugin):
-                tty.warn(
-                    "InfluxDB plugin was not built. Check if curl development headers are available. "
-                    f"Expected plugin at: {influxdb_plugin}"
-                )
-            else:
-                tty.msg(f"SUCCESS: InfluxDB plugin built at: {influxdb_plugin}")
-                # Also verify the plugin was linked against curl
-                try:
-                    ldd = exe.which("ldd")
-                    if ldd:
-                        output = ldd(influxdb_plugin, output=str, error=str)
-                        if "libcurl" in output:
-                            tty.msg("SUCCESS: InfluxDB plugin linked against curl")
-                        else:
-                            tty.warn("WARNING: InfluxDB plugin may not be linked against curl")
-                except Exception as e:
-                    tty.debug(f"Could not verify InfluxDB plugin curl linkage: {e}")
+        # Verify InfluxDB plugin was built (always expected since curl is always available)
+        influxdb_plugin = os.path.join(prefix.lib, "slurm", "acct_gather_profile_influxdb.so")
+        if not os.path.exists(influxdb_plugin):
+            tty.warn(
+                "InfluxDB plugin was not built. Check if curl development headers are available. "
+                f"Expected plugin at: {influxdb_plugin}"
+            )
+        else:
+            tty.msg(f"SUCCESS: InfluxDB plugin built at: {influxdb_plugin}")
+            # Also verify the plugin was linked against curl
+            try:
+                ldd = exe.which("ldd")
+                if ldd:
+                    output = ldd(influxdb_plugin, output=str, error=str)
+                    if "libcurl" in output:
+                        tty.msg("SUCCESS: InfluxDB plugin linked against curl")
+                    else:
+                        tty.warn("WARNING: InfluxDB plugin may not be linked against curl")
+            except Exception as e:
+                tty.debug(f"Could not verify InfluxDB plugin curl linkage: {e}")
 
 
 
