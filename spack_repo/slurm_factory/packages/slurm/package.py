@@ -158,7 +158,7 @@ class Slurm(AutotoolsPackage):
     variant("cgroup", default=False, description="Enable cgroup plugin")
     variant("pam", default=False, description="Enable PAM support")
     variant("rsmi", default=False, description="Enable ROCm SMI support")
-    variant("influxdb", default=True, description="Enable InfluxDB profiling plugin")
+    # Note: InfluxDB plugin is always built (no variant needed - depends on curl which is always included)
     variant("kafka", default=False, description="Enable Kafka profiling plugin")
     variant("lua", default=False, description="Enable Lua scripting support")
     variant("mcs", default=False, description="Enable MCS support for K8S integration")
@@ -417,11 +417,9 @@ Cflags: -I${{includedir}}
         # Always include JWT since auth plugins need it
         args.append("--with-jwt={0}".format(spec["libjwt"].prefix))
 
-        # Explicitly enable InfluxDB support with curl when variant is enabled
-        if "+influxdb" in spec:
-            args.append("--with-libcurl={0}".format(spec["curl"].prefix))
-        else:
-            args.append("--without-libcurl")
+        # Note: InfluxDB plugin automatically builds when curl is available
+        # curl is always configured via --with-libcurl earlier in this function
+        # No separate configure flag needed for influxdb plugin
 
         if "+restd" in spec:
             args.append("--enable-slurmrestd")
@@ -486,13 +484,12 @@ Cflags: -I${{includedir}}
         
         This approach avoids patching Makefile.am which would require autoreconf and
         cause AM_CONDITIONAL errors.
+        
+        Note: We always build this since curl is always a dependency.
         """
         import glob
         import shutil
         import subprocess
-        
-        if not self.spec.satisfies("+influxdb"):
-            return
         
         tty.msg("Building and installing libslurm_curl shared library for influxdb plugin")
         
