@@ -157,6 +157,7 @@ class Slurm(AutotoolsPackage):
     variant("cgroup", default=False, description="Enable cgroup plugin")
     variant("pam", default=False, description="Enable PAM support")
     variant("rsmi", default=False, description="Enable ROCm SMI support")
+    variant("ipmi", default=False, description="Enable IPMI support via FreeIPMI")
     # Note: InfluxDB plugin is always built (no variant needed - depends on curl which is always included)
     variant("kafka", default=False, description="Enable Kafka profiling plugin")
     variant("lua", default=False, description="Enable Lua scripting support")
@@ -215,6 +216,7 @@ class Slurm(AutotoolsPackage):
     depends_on("dbus", when="+cgroup")
     depends_on("linux-pam", when="+pam")
     depends_on("rocm-smi-lib", when="+rsmi")
+    depends_on("freeipmi", when="+ipmi")
 
     # Apply custom patches
     # NOTE: We don't patch Makefile.am because it requires autoreconf, which causes
@@ -439,6 +441,9 @@ Cflags: -I${{includedir}}
 
         if spec.satisfies("+rsmi"):
             args.append(f"--with-rsmi={spec['rocm-smi-lib'].prefix}")
+
+        if spec.satisfies("+ipmi"):
+            args.append(f"--with-freeipmi={spec['freeipmi'].prefix}")
 
         sysconfdir = spec.variants["sysconfdir"].value
         if sysconfdir != "PREFIX/etc":
