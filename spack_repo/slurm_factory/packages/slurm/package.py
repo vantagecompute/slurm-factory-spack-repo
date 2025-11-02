@@ -178,7 +178,7 @@ class Slurm(AutotoolsPackage):
 
     depends_on("librdkafka", when="+kafka")
 
-    depends_on("mysql@8.0.35 +client_only", type=("build", "link", "run"))
+    depends_on("mysql-connector-c", type=("build", "link", "run"))
     # curl with LDAP support is REQUIRED for Slurm's WITH_CURL conditional to be set
     # Without LDAP, libslurm_curl won't be built and influxdb plugin will fail with undefined symbols
     depends_on("curl libs=shared,static +nghttp2 +libssh2 +ldap", type=("build", "link", "run"))
@@ -383,8 +383,8 @@ Cflags: -I${{includedir}}
             ldflags.extend(["-L{0}/lib".format(kafka_prefix), "-Wl,-rpath,{0}/lib".format(kafka_prefix)])
 
         # MySQL configuration (required for accounting)
-        if "mysql" in spec:
-            mysql_prefix = spec["mysql"].prefix
+        if "mysql-connector-c" in spec:
+            mysql_prefix = spec["mysql-connector-c"].prefix
             cppflags.append("-I{0}/include".format(mysql_prefix))
             ldflags.extend(["-L{0}/lib".format(mysql_prefix), "-Wl,-rpath,{0}/lib".format(mysql_prefix)])
 
