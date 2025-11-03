@@ -23,7 +23,6 @@ class Freeipmi(AutotoolsPackage, GNUMirrorPackage):
 
     version("1.6.16", sha256="5bcef6bb9eb680e49b4a3623579930ace7899f53925b2045fe9f91ad6904111d")
 
-    depends_on("c", type="build")
     depends_on("libgcrypt")
 
     def configure_args(self):
