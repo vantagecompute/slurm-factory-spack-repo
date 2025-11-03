@@ -15,7 +15,7 @@ class Freeipmi(Package):
     and serial-over-LAN (SOL)."""
 
     homepage = "https://www.gnu.org/software/freeipmi/"
-    url = "https://ftpmirror.gnu.org/freeipmi/freeipmi-1.6.16.tar.gz"
+    url = "https://ftp.gnu.org/gnu/freeipmi/freeipmi-1.6.16.tar.gz"
 
     maintainers("slurm-factory")
 
@@ -26,7 +26,7 @@ class Freeipmi(Package):
     depends_on("libgcrypt")
 
     def install(self, spec, prefix):
-        """Manual configure, make, install to avoid AutotoolsPackage dependencies"""
+        """Manual configure, make, install to avoid any package dependencies"""
         configure = Executable("./configure")
         configure(
             f"--prefix={prefix}",
