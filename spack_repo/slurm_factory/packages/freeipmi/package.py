@@ -3,13 +3,11 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-from spack_repo.builtin.build_systems.autotools import AutotoolsPackage
 from spack_repo.builtin.build_systems.gnu import GNUMirrorPackage
-
 from spack.package import *
 
 
-class Freeipmi(AutotoolsPackage, GNUMirrorPackage):
+class Freeipmi(Package, GNUMirrorPackage):
     """FreeIPMI provides in-band and out-of-band IPMI software based on the
     IPMI v1.5/2.0 specification. The IPMI specification defines a set of
     interfaces for platform management and is implemented by a number vendors
@@ -28,5 +26,12 @@ class Freeipmi(AutotoolsPackage, GNUMirrorPackage):
 
     depends_on("libgcrypt")
 
-    def configure_args(self):
-        return ["--with-systemdsystemunitdir=no"]
+    def install(self, spec, prefix):
+        """Manual configure, make, install to avoid AutotoolsPackage dependencies"""
+        configure = Executable("./configure")
+        configure(
+            f"--prefix={prefix}",
+            "--with-systemdsystemunitdir=no",
+        )
+        make()
+        make("install")
