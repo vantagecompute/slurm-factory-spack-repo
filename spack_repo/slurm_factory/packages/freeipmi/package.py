@@ -3,11 +3,10 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-from spack_repo.builtin.build_systems.gnu import GNUMirrorPackage
 from spack.package import *
 
 
-class Freeipmi(Package, GNUMirrorPackage):
+class Freeipmi(Package):
     """FreeIPMI provides in-band and out-of-band IPMI software based on the
     IPMI v1.5/2.0 specification. The IPMI specification defines a set of
     interfaces for platform management and is implemented by a number vendors
@@ -16,7 +15,7 @@ class Freeipmi(Package, GNUMirrorPackage):
     and serial-over-LAN (SOL)."""
 
     homepage = "https://www.gnu.org/software/freeipmi/"
-    gnu_mirror_path = "freeipmi/freeipmi-1.6.16.tar.gz"
+    url = "https://ftpmirror.gnu.org/freeipmi/freeipmi-1.6.16.tar.gz"
 
     maintainers("slurm-factory")
 
