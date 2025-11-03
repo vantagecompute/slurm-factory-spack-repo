@@ -112,7 +112,6 @@ class Slurm(AutotoolsPackage):
     # Apply custom patches
     # NOTE: We don't patch Makefile.am because it requires autoreconf, which causes
     # AM_CONDITIONAL errors. Instead, we manually build libslurm_curl.so in install phase.
-    # patch("build-libslurm-curl-shared.patch", when="+influxdb")
 
     executables = ["^srun$", "^salloc$"]
 
