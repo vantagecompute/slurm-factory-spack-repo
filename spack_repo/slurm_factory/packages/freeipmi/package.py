@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+from spack.package import *
 from spack_repo.builtin.build_systems.autotools import AutotoolsPackage
 from spack_repo.builtin.build_systems.gnu import GNUMirrorPackage
 
@@ -17,8 +18,6 @@ class Freeipmi(AutotoolsPackage, GNUMirrorPackage):
 
     homepage = "https://www.gnu.org/software/freeipmi/"
     gnu_mirror_path = "freeipmi/freeipmi-1.6.16.tar.gz"
-
-    maintainers("slurm-factory")
 
     license("GPL-3.0-or-later")
 
