@@ -45,178 +45,69 @@ class Slurm(AutotoolsPackage):
     version(
         "23-11-11-1", sha256="e9234e664ce30be206f73c0ff1a5f33e0ce32be35ece812eac930fcaa9da2c2f"
     )
-    version("23-11-1-1", sha256="31506df24c6d24e0ea0329cac1395ab9b645bbde1518f5c469f7711df5e22c11")
-    version("23-11-0-1", sha256="3780773a80b73ea2edb4353318b4220188f4eda92c31ab3a2bdd3a4fdec76be9")
-    version("23-02-7-1", sha256="3f60ad5b5a492312d1febb9f9167caa3aee7f8438bb032590a993f5a65c5e4db")
-    version("23-02-6-1", sha256="ed44d4e591c0f91874d535cb8c9ea67dd2a38bfa4e96fa6c71687293f6a1d3bb")
-    version("23-02-5-1", sha256="4fee743a34514d8fe487080048256f5ee032374ed5f42d0eae342110dcd59edf")
-    version("23-02-4-1", sha256="7290143a71ce2797d0df3423f08396fd5c0ae4504749ff372d6860b2d6a3a1b0")
-    version("23-02-3-1", sha256="c41747e4484011cf376d6d4bc73b6c4696cdc0f7db4f64174f111bb9f53fb603")
-    version("23-02-2-1", sha256="71edcf187a7d68176cca06143adf98e8f332d42cdf000cb534b03b13834ad537")
-    version("23-02-1-1", sha256="d827553496ee9158bbf6a862b563cfd48566e6d815ad2f8349950fe6f04934da")
-    version("22-05-9-1", sha256="c9aaa2362b5bf7a4745c8bf90e8dd2ca50802f1241dd1f5220aec8448c09b514")
-    version("22-05-8-1", sha256="8c8f6a26a5d51e6c63773f2e02653eb724540ee8b360125c8d7732314ce737d6")
-    version("22-05-7-1", sha256="2ad7e8a415d54d45977ab64b4e73c891154d2f41a04505fedf6f8d3df385acb1")
-    version("21-08-8-2", sha256="876d7dfa716990d7e579cfb9c6ffc123258e03a1450e993ade596d2ee90afcdd")
-    version("21-08-8-1", sha256="47d4dd2f391abcb856ecfddb51145c86ead89554f24efb586c59f0e38491ff36")
-    version("20-11-9-1", sha256="98d36f3487e95af610db305a3ee1c1a7d370a3e1efef9fabee8b0edb98a6604b")
-    # Due to CVE 2022-29500, CVE 2022-29501, and CVE 2022-29502, prior to 21.08.8 and
-    # 20.11.9 are deprecated
-    version(
-        "21-08-1-1",
-        sha256="23321719101762b055a6b1da6ff4261f5e6c469bce038c6c23549840453862e7",
-        deprecated=True,
-    )
-    version(
-        "21-08-0-1",
-        sha256="c8caf9b5f715c02b6f9e55e9737ee7b99f93c5efc8dcc34c2ce40bed0aea5402",
-        deprecated=True,
-    )
-    version(
-        "20-11-8-1",
-        sha256="1cafed56ae9d90387a5dc6092090c174e144a6e5a31330f748d1fd3a616ae92f",
-        deprecated=True,
-    )
-    version(
-        "20-11-7-1",
-        sha256="7d92babd97d0b8750b8c25eced4507323aff32a9d85af3a644c1acedbddb9d2f",
-        deprecated=True,
-    )
-    version(
-        "20-02-7-1",
-        sha256="060acf966af53e75c7eaae83c4f42abdcc60702838c2dcd35cb01468b45a68a1",
-        deprecated=True,
-    )
-    # Due to CVE-2021-31215, all versions prior to 20.11.7 or 20.02.7 are deprecated.
-    version(
-        "20-11-5-1",
-        sha256="d0634c6c6cc79bde38d19f0ef0de0de3b07907830f5e45be6f4a9ca4259f8f67",
-        deprecated=True,
-    )
-    version(
-        "20-11-4-1",
-        sha256="06c5333e85f531730bf1c6eb48a8d48a551d9090540ce37b78181024273fb6bd",
-        deprecated=True,
-    )
-    version(
-        "20-11-0-1",
-        sha256="404f72c287c5aad887a5b141304e4962548c12f79b04fc9c88550bc024604228",
-        deprecated=True,
-    )
-    version(
-        "20-02-4-1",
-        sha256="d32a39df20a99430973de6692870269f38443d8b963c32b4d6475c9d5e92cd73",
-        deprecated=True,
-    )
-    version(
-        "19-05-6-1",
-        sha256="1b83bce4260af06d644253b1f2ec2979b80b4418c631e9c9f48c2729ae2c95ba",
-        deprecated=True,
-    )
-    version(
-        "19-05-5-1",
-        sha256="e53e67bd0bb4c37a9c481998764a746467a96bc41d6527569080514f36452c07",
-        deprecated=True,
-    )
-    version(
-        "18-08-9-1",
-        sha256="32eb0b612ca18ade1e35c3c9d3b4d71aba2b857446841606a9e54d0a417c3b03",
-        deprecated=True,
-    )
-    version(
-        "18-08-0-1",
-        sha256="62129d0f2949bc8a68ef86fe6f12e0715cbbf42f05b8da6ef7c3e7e7240b50d9",
-        deprecated=True,
-    )
-    version(
-        "17-11-9-2",
-        sha256="6e34328ed68262e776f524f59cca79ac75bcd18030951d45ea545a7ba4c45906",
-        deprecated=True,
-    )
-    version(
-        "17-02-6-1",
-        sha256="97b3a3639106bd6d44988ed018e2657f3d640a3d5c105413d05b4721bc8ee25e",
-        deprecated=True,
-    )
 
-    variant("gtk", default=False, description="Enable GTK+ support")
-    variant("mariadb", default=False, description="Use MariaDB instead of MySQL")
-
-    variant("hwloc", default=False, description="Enable hwloc support")
-    variant("hdf5", default=False, description="Enable hdf5 support")
-    variant("readline", default=True, description="Enable readline support")
-    variant("pmix", default=False, description="Enable PMIx support")
     variant(
         "sysconfdir",
         default="PREFIX/etc",
         values=any,
         description="Set system configuration path (possibly /etc/slurm)",
     )
-    variant("restd", default=False, description="Enable the slurmrestd server")
+    variant("gtk", default=False, description="Enable GTK+ support")
     variant("nvml", default=False, description="Enable NVML autodetection")
-    variant("cgroup", default=False, description="Enable cgroup plugin")
-    variant("pam", default=False, description="Enable PAM support")
     variant("rsmi", default=False, description="Enable ROCm SMI support")
-    variant("ipmi", default=False, description="Enable IPMI support via FreeIPMI")
-    # Note: InfluxDB plugin is always built (no variant needed - depends on curl which is always included)
-    variant("kafka", default=False, description="Enable Kafka profiling plugin")
-    variant("lua", default=False, description="Enable Lua scripting support")
-    variant("mcs", default=False, description="Enable MCS support for K8S integration")
-    variant("certs", default=False, description="Enable certificate generation support for slurm>=24.11.")
   
-    # TODO: add variant for BG/Q and Cray support
-
-    # TODO: add variant for TLS (slurm@25-05:)
-
-    # TODO: add variant for RRD (librrd) (slurm@23-02:)
-
     # TODO: add support for checkpoint/restart (BLCR)
 
-    # TODO: add support for lua
+    # Dependencies
+    depends_on("c", type="build")
 
-    depends_on("c", type="build")  # generated
+    # librdkafka is needed for the Kafka job scheduler
+    # Always build with librdkafka support
+    depends_on("librdkafka")
 
-    depends_on("librdkafka", when="+kafka")
+    # Note: http-parser needed for slurmrestd and influxdb plugin (always built with curl)
+    depends_on("http-parser")
+    depends_on("libyaml")
 
-    depends_on("mysql-connector-c", type=("build", "link", "run"))
     # curl with LDAP support is REQUIRED for Slurm's WITH_CURL conditional to be set
     # Without LDAP, libslurm_curl won't be built and influxdb plugin will fail with undefined symbols
     depends_on("curl libs=shared,static +nghttp2 +libssh2 +ldap", type=("build", "link", "run"))
+
+    # Cgroup plugin needs dbus
+    depends_on("dbus")
+
+    # Linux PAM is needed for PAM support
+    depends_on("linux-pam")
+
+    # IPMI support via FreeIPMI
+    depends_on("freeipmi")
+
+    # MySQL client library is REQUIRED for Slurm accounting support
+    depends_on("mysql-connector-c", type=("build", "link", "run"))
+
     depends_on("libssh2", type=("build", "link", "run"))
     depends_on("glib", type=("build", "link", "run"))
     depends_on("json-c", type=("build", "link", "run"))
     depends_on("lz4", type=("build", "link", "run"))
     depends_on("munge", type=("build", "link", "run"))
     depends_on("ncurses", type=("build", "link", "run"))
-    depends_on("lua", when="+lua", type=("build", "link", "run"))
+    depends_on("lua", type=("build", "link", "run"))
     depends_on("openssl", type=("build", "link", "run"))
     depends_on("pkgconfig", type="build")
-    depends_on("readline", when="+readline", type=("build", "link", "run"))
+    depends_on("readline", type=("build", "link", "run"))
     depends_on("zlib-api", type=("build", "link", "run"))
 
     depends_on("gtkplus", when="+gtk", type=("build", "link", "run"))
-    depends_on("hdf5", when="+hdf5", type=("build", "link", "run"))
-    depends_on("hwloc", when="+hwloc", type=("build", "link", "run"))
-    depends_on("mariadb", when="+mariadb", type=("build", "link", "run"))
+    depends_on("hdf5", type=("build", "link", "run"))
+    depends_on("hwloc", type=("build", "link", "run"))
 
     # JWT library is needed for auth plugins, not just REST daemon
     depends_on("libjwt", type=("build", "link", "run"))
     
-    depends_on("pmix@:5", when="@22-05:+pmix", type=("build", "link", "run"))
-    depends_on("pmix@:3", when="@20-11:21-08+pmix", type=("build", "link", "run"))
-    depends_on("pmix@:2", when="@19-05:20-02+pmix", type=("build", "link", "run"))
-    depends_on("pmix@:1", when="@:18+pmix", type=("build", "link", "run"))
-
-    depends_on("http-parser", when="+restd")
-    # Note: http-parser also needed for influxdb plugin (always built with curl)
-    depends_on("libyaml", when="+restd")
-    # Note: libjwt dependency moved to unconditional above since auth plugins need it
+    depends_on("pmix@:5", type=("build", "link", "run"))
 
     depends_on("cuda", when="+nvml")
-    depends_on("dbus", when="+cgroup")
-    depends_on("linux-pam", when="+pam")
     depends_on("rocm-smi-lib", when="+rsmi")
-    depends_on("freeipmi", when="+ipmi")
 
     # Apply custom patches
     # NOTE: We don't patch Makefile.am because it requires autoreconf, which causes
@@ -362,31 +253,58 @@ Cflags: -I${{includedir}}
         # Add curl paths to general CPPFLAGS and LDFLAGS for fallback
         cppflags.append("-I{0}/include".format(curl_prefix))
         ldflags.extend(["-L{0}/lib".format(curl_prefix), "-Wl,-rpath,{0}/lib".format(curl_prefix)])
-        
-        # Note: influxdb plugin will automatically work once WITH_CURL is properly set
-        # The plugin depends on libslurm_curl.la which provides slurm_curl_* functions
 
-        if "+lua" in spec:
-            # Slurm's configure uses pkg-config for Lua detection
-            # Pass --with-lua (not a path) and let pkg-config find it via CPPFLAGS/LDFLAGS
-            lua_prefix = spec["lua"].prefix
-            args.append("--with-lua")
-            cppflags.append("-I{0}/include".format(lua_prefix))
-            ldflags.extend(["-L{0}/lib".format(lua_prefix), "-Wl,-rpath,{0}/lib".format(lua_prefix)])
-        else:
-            args.append("--without-lua")
+        # slurmrestd support
+        args.append("--enable-slurmrestd")
+        args.append("--with-http-parser={0}".format(spec["http-parser"].prefix))
 
-        if "+kafka" in spec:
-            kafka_prefix = spec["librdkafka"].prefix
-            args.append("--with-rdkafka={0}".format(kafka_prefix))
-            cppflags.append("-I{0}/include".format(kafka_prefix))
-            ldflags.extend(["-L{0}/lib".format(kafka_prefix), "-Wl,-rpath,{0}/lib".format(kafka_prefix)])
+        # HDF5 support
+        args.append("--with-hdf5={0}".format(spec["hdf5"].prefix.bin.h5cc))
+
+        # PMIx support
+        args.append("--with-pmix={0}".format(spec["pmix"].prefix))
+
+        # Always include JWT since auth plugins need it
+        args.append("--with-jwt={0}".format(spec["libjwt"].prefix))
+
+        # Hwloc support
+        args.append("--with-hwloc={0}".format(spec["hwloc"].prefix))
+
+        # FreeIPMI support
+        args.append(f"--with-freeipmi={spec['freeipmi'].prefix}")
+
+        # Slurm's configure uses pkg-config for Lua detection
+        lua_prefix = spec["lua"].prefix
+        args.append("--with-lua")
+        cppflags.append("-I{0}/include".format(lua_prefix))
+        ldflags.extend(["-L{0}/lib".format(lua_prefix), "-Wl,-rpath,{0}/lib".format(lua_prefix)])
+
+        # PAM support
+        args.append(f"--with-pam_dir={spec['linux-pam'].prefix}")
+
+        # Kafka configuration
+        kafka_prefix = spec["librdkafka"].prefix
+        args.append("--with-rdkafka={0}".format(kafka_prefix))
+        cppflags.append("-I{0}/include".format(kafka_prefix))
+        ldflags.extend(["-L{0}/lib".format(kafka_prefix), "-Wl,-rpath,{0}/lib".format(kafka_prefix)])
 
         # MySQL configuration (required for accounting)
-        if "mysql-connector-c" in spec:
-            mysql_prefix = spec["mysql-connector-c"].prefix
-            cppflags.append("-I{0}/include".format(mysql_prefix))
-            ldflags.extend(["-L{0}/lib".format(mysql_prefix), "-Wl,-rpath,{0}/lib".format(mysql_prefix)])
+        mysql_prefix = spec["mysql-connector-c"].prefix
+        cppflags.append("-I{0}/include".format(mysql_prefix))
+        ldflags.extend(["-L{0}/lib".format(mysql_prefix), "-Wl,-rpath,{0}/lib".format(mysql_prefix)])
+
+        if "~gtk" in spec:
+            args.append("--disable-gtktest")
+
+        if spec.satisfies("+nvml"):
+            args.append(f"--with-nvml={spec['cuda'].prefix}")
+
+        if spec.satisfies("+rsmi"):
+            args.append(f"--with-rsmi={spec['rocm-smi-lib'].prefix}")
+
+        sysconfdir = spec.variants["sysconfdir"].value
+        if sysconfdir != "PREFIX/etc":
+            args.append("--sysconfdir={0}".format(sysconfdir))
 
         # Add RPATH for lib/slurm directory where libslurmfull.so resides
         # This ensures slurmstepd and other binaries can find Slurm internal libraries
@@ -398,56 +316,6 @@ Cflags: -I${{includedir}}
             args.append("CPPFLAGS={0}".format(" ".join(cppflags)))
         if ldflags:
             args.append("LDFLAGS={0}".format(" ".join(ldflags)))
-
-        if "~gtk" in spec:
-            args.append("--disable-gtktest")
-
-        if "~readline" in spec:
-            args.append("--without-readline")
-
-        if "+hdf5" in spec:
-            args.append("--with-hdf5={0}".format(spec["hdf5"].prefix.bin.h5cc))
-        else:
-            args.append("--without-hdf5")
-
-        if "+pmix" in spec:
-            args.append("--with-pmix={0}".format(spec["pmix"].prefix))
-        else:
-            args.append("--without-pmix")
-
-        # Always include JWT since auth plugins need it
-        args.append("--with-jwt={0}".format(spec["libjwt"].prefix))
-
-        # Note: InfluxDB plugin automatically builds when curl is available
-        # curl is always configured via --with-libcurl earlier in this function
-        # No separate configure flag needed for influxdb plugin
-
-        if "+restd" in spec:
-            args.append("--enable-slurmrestd")
-            args.append("--with-http-parser={0}".format(spec["http-parser"].prefix))
-        else:
-            args.append("--disable-slurmrestd")
-   
-        if "+hwloc" in spec:
-            args.append("--with-hwloc={0}".format(spec["hwloc"].prefix))
-        else:
-            args.append("--without-hwloc")
-
-        if spec.satisfies("+nvml"):
-            args.append(f"--with-nvml={spec['cuda'].prefix}")
-
-        if spec.satisfies("+pam"):
-            args.append(f"--with-pam_dir={spec['linux-pam'].prefix}")
-
-        if spec.satisfies("+rsmi"):
-            args.append(f"--with-rsmi={spec['rocm-smi-lib'].prefix}")
-
-        if spec.satisfies("+ipmi"):
-            args.append(f"--with-freeipmi={spec['freeipmi'].prefix}")
-
-        sysconfdir = spec.variants["sysconfdir"].value
-        if sysconfdir != "PREFIX/etc":
-            args.append("--sysconfdir={0}".format(sysconfdir))
 
         return args
     
@@ -589,11 +457,6 @@ Cflags: -I${{includedir}}
     def install(self, spec, prefix):
         make("install")
         make("-C", "contribs/pmi2", "install")
-
-        # Note: The main 'make install' already handles plugin installation for influxdb,
-        # certmgr, certgen, and mcs when the appropriate variants are enabled.
-        # No need for separate make commands - verified in build logs that these directories
-        # are processed during the main install phase.
 
         # Verify curl linkage by checking if slurmctld was built with curl support
         slurmctld_path = os.path.join(prefix.sbin, "slurmctld")
