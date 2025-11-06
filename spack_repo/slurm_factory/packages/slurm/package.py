@@ -40,7 +40,7 @@ class Slurm(AutotoolsPackage):
 
     license("GPL-2.0-or-later")
 
-    version("25-05-4-1", sha256="e672374ba5d31e033c54798a7e7e769a753fbc2e73f6cf58cd3ddec48b18cf50")
+    version("25-11-0-1", sha256="f208e2fb5f312da669ad5bdc9a6226f0dec715a00ff2f5f258d61bc25cd6f49b")
     version("24-11-6-1", sha256="282708483326f381eb001a14852a1a82e65e18f37b62b7a5f4936c0ed443b600")
     version(
         "23-11-11-1", sha256="e9234e664ce30be206f73c0ff1a5f33e0ce32be35ece812eac930fcaa9da2c2f"
