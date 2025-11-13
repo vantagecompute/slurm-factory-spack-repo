@@ -1,0 +1,18 @@
+--- spack_repo/slurm_factory/packages/slurm/package.py
++++ spack_repo/slurm_factory/packages/slurm/package.py
+@@ -85,7 +85,6 @@ class Slurm(AutotoolsPackage):
+     depends_on("lua", type=("build", "link"))
+     depends_on("readline", type=("build", "link"))
+     depends_on("hwloc", type=("build", "link"))
+-    depends_on("hdf5", type=("build", "link"))
+ 
+     # Full runtime dependencies (needed at runtime as separate packages)
+     # curl with LDAP support is REQUIRED for Slurm's WITH_CURL conditional to be set
+@@ -100,6 +99,7 @@ class Slurm(AutotoolsPackage):
+     depends_on("libjwt", type=("build", "link", "run"))
+     depends_on("pmix@:5", type=("build", "link", "run"))
+     depends_on("zlib-api", type=("build", "link", "run"))
++    depends_on("hdf5", type=("build", "link", "run"))
+ 
+     # Conditional dependencies
+     depends_on("gtkplus", when="+gtk", type=("build", "link"))
