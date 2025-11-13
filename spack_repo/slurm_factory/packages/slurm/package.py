@@ -198,6 +198,14 @@ Cflags: -I${{includedir}}
                 tty.msg(f"curl protocols: {protocols[:100]}...")
                 if "LDAP" in protocols:
                     tty.msg("✓ LDAP protocol confirmed in curl")
+
+        # Add HDF5 include paths for HDF5 profiling plugin
+        if "hdf5" in spec:
+            hdf5_prefix = spec["hdf5"].prefix
+            tty.msg(f"Adding HDF5 include path: {hdf5_prefix}/include")
+            env.prepend_path("CPATH", os.path.join(hdf5_prefix, "include"))
+            env.prepend_path("C_INCLUDE_PATH", os.path.join(hdf5_prefix, "include"))
+            env.prepend_path("CPLUS_INCLUDE_PATH", os.path.join(hdf5_prefix, "include"))
                 else:
                     tty.warn("✗ LDAP protocol NOT found in curl!")
             except Exception as e:
