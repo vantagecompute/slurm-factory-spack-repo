@@ -198,7 +198,11 @@ Cflags: -I${{includedir}}
                 tty.msg(f"curl protocols: {protocols[:100]}...")
                 if "LDAP" in protocols:
                     tty.msg("✓ LDAP protocol confirmed in curl")
-
+                else:
+                    tty.warn("✗ LDAP protocol NOT found in curl!")
+            except Exception as e:
+                tty.error(f"Failed to run curl-config: {e}")
+        
         # Add HDF5 include paths for HDF5 profiling plugin
         if "hdf5" in spec:
             hdf5_prefix = spec["hdf5"].prefix
@@ -206,10 +210,6 @@ Cflags: -I${{includedir}}
             env.prepend_path("CPATH", os.path.join(hdf5_prefix, "include"))
             env.prepend_path("C_INCLUDE_PATH", os.path.join(hdf5_prefix, "include"))
             env.prepend_path("CPLUS_INCLUDE_PATH", os.path.join(hdf5_prefix, "include"))
-                else:
-                    tty.warn("✗ LDAP protocol NOT found in curl!")
-            except Exception as e:
-                tty.error(f"Failed to run curl-config: {e}")
         
         # DO NOT set LIBCURL or LIBCURL_CPPFLAGS environment variables!
         # The configure script's LIBCURL_CHECK_CONFIG macro needs to run curl-config
