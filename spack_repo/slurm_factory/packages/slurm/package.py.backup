@@ -61,50 +61,53 @@ class Slurm(AutotoolsPackage):
     # Dependencies
     depends_on("c", type="build")
 
-    # Build-only dependencies (not linked, not needed at runtime)
-    depends_on("pkgconfig", type="build")
+    # librdkafka is needed for the Kafka job scheduler
+    # Always build with librdkafka support
+    depends_on("librdkafka")
 
-    # Link-only dependencies (headers + static libs, compiled in, not needed as runtime packages)
-    # librdkafka is needed for the Kafka job scheduler - usually linked statically
-    depends_on("librdkafka", type="link")
-    # http-parser needed for slurmrestd and influxdb plugin - static library
-    depends_on("http-parser", type="link")
-    depends_on("libyaml", type="link")
+    # Note: http-parser needed for slurmrestd and influxdb plugin (always built with curl)
+    depends_on("http-parser")
+    depends_on("libyaml")
 
-    # Build+Link dependencies (linked but not needed as separate runtime packages)
-    # Cgroup plugin needs dbus
-    depends_on("dbus", type=("build", "link"))
-    # Linux PAM is needed for PAM support
-    depends_on("linux-pam", type=("build", "link"))
-    # IPMI support via FreeIPMI
-    depends_on("freeipmi", type=("build", "link"))
-    depends_on("json-c", type=("build", "link"))
-    depends_on("lz4", type=("build", "link"))
-    depends_on("ncurses", type=("build", "link"))
-    depends_on("lua", type=("build", "link"))
-    depends_on("readline", type=("build", "link"))
-    depends_on("hwloc", type=("build", "link"))
-    depends_on("hdf5", type=("build", "link"))
-
-    # Full runtime dependencies (needed at runtime as separate packages)
     # curl with LDAP support is REQUIRED for Slurm's WITH_CURL conditional to be set
     # Without LDAP, libslurm_curl won't be built and influxdb plugin will fail with undefined symbols
     depends_on("curl libs=shared,static +nghttp2 +libssh2 +ldap", type=("build", "link", "run"))
+
+    # Cgroup plugin needs dbus
+    depends_on("dbus")
+
+    # Linux PAM is needed for PAM support
+    depends_on("linux-pam")
+
+    # IPMI support via FreeIPMI
+    depends_on("freeipmi")
+
     # MySQL client library is REQUIRED for Slurm accounting support
     depends_on("mysql-connector-c", type=("build", "link", "run"))
-    depends_on("openssl", type=("build", "link", "run"))
-    depends_on("glib", type=("build", "link", "run"))
-    depends_on("munge", type=("build", "link", "run"))
+
     depends_on("libssh2", type=("build", "link", "run"))
-    # JWT library is needed for auth plugins, not just REST daemon
-    depends_on("libjwt", type=("build", "link", "run"))
-    depends_on("pmix@:5", type=("build", "link", "run"))
+    depends_on("glib", type=("build", "link", "run"))
+    depends_on("json-c", type=("build", "link", "run"))
+    depends_on("lz4", type=("build", "link", "run"))
+    depends_on("munge", type=("build", "link", "run"))
+    depends_on("ncurses", type=("build", "link", "run"))
+    depends_on("lua", type=("build", "link", "run"))
+    depends_on("openssl", type=("build", "link", "run"))
+    depends_on("pkgconfig", type="build")
+    depends_on("readline", type=("build", "link", "run"))
     depends_on("zlib-api", type=("build", "link", "run"))
 
-    # Conditional dependencies
-    depends_on("gtkplus", when="+gtk", type=("build", "link"))
-    depends_on("cuda", when="+nvml", type="run")
-    depends_on("rocm-smi-lib", when="+rsmi", type="run")
+    depends_on("gtkplus", when="+gtk", type=("build", "link", "run"))
+    depends_on("hdf5", type=("build", "link", "run"))
+    depends_on("hwloc", type=("build", "link", "run"))
+
+    # JWT library is needed for auth plugins, not just REST daemon
+    depends_on("libjwt", type=("build", "link", "run"))
+    
+    depends_on("pmix@:5", type=("build", "link", "run"))
+
+    depends_on("cuda", when="+nvml")
+    depends_on("rocm-smi-lib", when="+rsmi")
 
     # Apply custom patches
     # NOTE: We don't patch Makefile.am because it requires autoreconf, which causes
