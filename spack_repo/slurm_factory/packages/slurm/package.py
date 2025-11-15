@@ -88,7 +88,7 @@ class Slurm(AutotoolsPackage):
     # Full runtime dependencies (needed at runtime as separate packages)
     # curl with LDAP support is REQUIRED for Slurm's WITH_CURL conditional to be set
     # Without LDAP, libslurm_curl won't be built and influxdb plugin will fail with undefined symbols
-    depends_on("curl libs=shared,static +nghttp2 +libssh2 +ldap", type=("build", "link", "run"))
+    depends_on("curl libs=shared,static +nghttp2 +libssh2 +ldap +gssapi +libidn2", type=("build", "link", "run"))
     # MySQL client library is REQUIRED for Slurm accounting support
     depends_on("mysql-connector-c", type=("build", "link", "run"))
     depends_on("openssl", type=("build", "link", "run"))
