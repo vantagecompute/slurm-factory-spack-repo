@@ -103,8 +103,8 @@ class Slurm(AutotoolsPackage):
 
     # Conditional dependencies
     depends_on("gtkplus", when="+gtk", type=("build", "link"))
-    depends_on("cuda", when="+nvml", type=("build", "run"))
-    depends_on("rocm-smi-lib", when="+rsmi", type=("build", "run"))
+    depends_on("cuda", when="+nvml")
+    depends_on("rocm-smi-lib", when="+rsmi")
 
     # Apply custom patches
     # NOTE: We don't patch Makefile.am because it requires autoreconf, which causes
