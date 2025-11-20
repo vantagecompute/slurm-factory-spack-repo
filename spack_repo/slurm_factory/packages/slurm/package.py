@@ -90,7 +90,7 @@ class Slurm(AutotoolsPackage):
     # Without LDAP, libslurm_curl won't be built and influxdb plugin will fail with undefined symbols
     depends_on("curl libs=shared,static +nghttp2 +libssh2 +ldap", type=("build", "link", "run"))
     # MySQL client library is REQUIRED for Slurm accounting support
-    depends_on("mysql-connector-c", type=("build", "link", "run"))
+    depends_on("mysql@8.0.35 +client_only", type=("build", "link", "run"))
     depends_on("openssl", type=("build", "link", "run"))
     depends_on("glib", type=("build", "link", "run"))
     depends_on("munge", type=("build", "link", "run"))
@@ -295,7 +295,7 @@ Cflags: -I${{includedir}}
         ldflags.extend(["-L{0}/lib".format(kafka_prefix), "-Wl,-rpath,{0}/lib".format(kafka_prefix)])
 
         # MySQL configuration (required for accounting)
-        mysql_prefix = spec["mysql-connector-c"].prefix
+        mysql_prefix = spec["mysql"].prefix
         cppflags.append("-I{0}/include".format(mysql_prefix))
         ldflags.extend(["-L{0}/lib".format(mysql_prefix), "-Wl,-rpath,{0}/lib".format(mysql_prefix)])
 
