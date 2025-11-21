@@ -20,7 +20,7 @@ class Freeipmi(AutotoolsPackage, GNUMirrorPackage):
     and serial-over-LAN (SOL).
     """
 
-    homepage = "https://www.gnu.org/software/freeipmi/"
+    homepage = "https://mirrors.kernel.org/gnu/freeipmi/"
     gnu_mirror_path = "freeipmi/freeipmi-1.6.16.tar.gz"
 
     license("GPL-3.0-or-later")

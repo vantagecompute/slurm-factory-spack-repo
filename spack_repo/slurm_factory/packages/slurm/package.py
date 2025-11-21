@@ -461,6 +461,7 @@ Cflags: -I${{includedir}}
     def install(self, spec, prefix):
         make("install")
         make("-C", "contribs/pmi2", "install")
+        make("-C", "contribs/nss_slurm", "install")
 
         # Verify curl linkage by checking if slurmctld was built with curl support
         slurmctld_path = os.path.join(prefix.sbin, "slurmctld")
