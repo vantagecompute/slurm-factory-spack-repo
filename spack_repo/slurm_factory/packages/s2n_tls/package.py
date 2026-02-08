@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from spack.package import *
 from spack_repo.builtin.build_systems.cmake import CMakePackage
+from spack.package import *
 
 
 class S2nTls(CMakePackage):
@@ -34,7 +34,8 @@ class S2nTls(CMakePackage):
 
     license("Apache-2.0")
 
-    # Latest stable releases
+    # Latest stable releases (1.7.0 checksum from spack create)
+    version("1.7.0", sha256="a6e8228e238239bb3c17b1eda3ed702bcbb2eaebc792eac4d754cc5619b0ea06")
     version("1.5.14", sha256="3f65f1eca85a8ac279de204455a3e4940bc6ad4a1df53387d86136bcecde0c08")
     version("1.5.13", sha256="ea4b0ea3585be97bb31ced70ba6190f29ddefec32d102e47b2906d402ec4b8df")
     version("1.5.12", sha256="718866ea8276f4d5c78a4b6506561599a4ff5c05b3fccee7ef7ad6198b23e660")
@@ -46,6 +47,7 @@ class S2nTls(CMakePackage):
     variant("shared", default=True, description="Build shared libraries")
 
     # Dependencies
+    depends_on("c", type="build")
     depends_on("cmake@3.0:", type="build")
     depends_on("openssl")
 
