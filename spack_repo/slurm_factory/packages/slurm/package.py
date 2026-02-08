@@ -60,7 +60,7 @@ class Slurm(AutotoolsPackage):
 
     # s2n-tls for internal TLS support (tls/s2n plugin) - required for slurm >= 25.11
     # Ref: https://slurm.schedmd.com/tls.html
-    depends_on("s2n-tls", when="@25-11-2-1:", type=("build", "link", "run"))
+    depends_on("slurm_factory.s2n_tls", when="@25-11-2-1:", type=("build", "link", "run"))
 
     # Dependencies
     depends_on("c", type="build")
