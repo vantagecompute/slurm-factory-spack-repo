@@ -14,7 +14,7 @@
 
 [project]
 name = "slurm-factory-spack-repo"
-version = "0.0.1"
+version = "0.0.2"
 description = "Spack repository containing custom slurm and slurm dependency package definitions."
 readme = "README.md"
 authors = [
