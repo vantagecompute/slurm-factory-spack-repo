@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from spack.package import *
-from spack_repo.builtin.build_systems.cmake import CMakePackage
 
 
 class S2nTls(CMakePackage):
