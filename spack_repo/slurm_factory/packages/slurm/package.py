@@ -16,8 +16,9 @@ import re
 
 import spack.llnl.util.tty as tty
 import spack.util.executable as exe
+from spack.build_systems.autotools import AutotoolsPackage
 from spack.package import *
-from spack_repo.builtin.build_systems.autotools import AutotoolsPackage
+from spack.util.executable import which
 
 
 class Slurm(AutotoolsPackage):
@@ -60,7 +61,17 @@ class Slurm(AutotoolsPackage):
 
     # s2n-tls for internal TLS support (tls/s2n plugin) - required for slurm >= 25.11
     # Ref: https://slurm.schedmd.com/tls.html
-    depends_on("slurm_factory.s2n_tls", when="@25-11-2-1:", type=("build", "link", "run"))
+    # Built as a resource (embedded build) to avoid separate spack package complexity
+    resource(
+        name="s2n-tls",
+        url="https://github.com/aws/s2n-tls/archive/refs/tags/v1.5.14.tar.gz",
+        sha256="3f65f1eca85a8ac279de204455a3e4940bc6ad4a1df53387d86136bcecde0c08",
+        destination="s2n-tls-src",
+        when="@25-11-2-1:",
+    )
+
+    # cmake is needed to build s2n-tls
+    depends_on("cmake@3.0:", type="build", when="@25-11-2-1:")
 
     # Dependencies
     depends_on("c", type="build")
@@ -314,8 +325,10 @@ Cflags: -I${{includedir}}
 
         # s2n-tls for internal TLS support (tls/s2n plugin) - enabled for slurm >= 25.11
         # Ref: https://slurm.schedmd.com/tls.html
+        # s2n-tls is built as a resource (embedded build) before configure
         if spec.satisfies("@25-11-2-1:"):
-            s2n_prefix = spec["s2n-tls"].prefix
+            # s2n-tls is built into a local prefix within the stage directory
+            s2n_prefix = join_path(self.stage.source_path, "s2n-tls-install")
             args.append("--with-s2n={0}".format(s2n_prefix))
             cppflags.append("-I{0}/include".format(s2n_prefix))
             ldflags.extend(
@@ -338,6 +351,78 @@ Cflags: -I${{includedir}}
             args.append("LDFLAGS={0}".format(" ".join(ldflags)))
 
         return args
+
+    @run_before("configure")
+    def build_s2n_tls(self):
+        """
+        Build s2n-tls as an embedded resource before Slurm configure.
+        
+        s2n-tls is required for Slurm >= 25.11 for the tls/s2n plugin.
+        We build it as a resource to avoid separate spack package complexity.
+        """
+        spec = self.spec
+        if not spec.satisfies("@25-11-2-1:"):
+            return
+
+        tty.msg("Building s2n-tls for Slurm TLS plugin support")
+
+        # Find the s2n-tls source directory (extracted by spack resource)
+        s2n_src_parent = join_path(self.stage.source_path, "s2n-tls-src")
+        
+        # Find the actual extracted directory (it has a version suffix)
+        s2n_src = None
+        if os.path.exists(s2n_src_parent):
+            for entry in os.listdir(s2n_src_parent):
+                candidate = join_path(s2n_src_parent, entry)
+                if os.path.isdir(candidate) and entry.startswith("s2n-tls"):
+                    s2n_src = candidate
+                    break
+        
+        if not s2n_src or not os.path.exists(s2n_src):
+            raise InstallError(f"s2n-tls source not found in {s2n_src_parent}")
+
+        tty.msg(f"Found s2n-tls source at {s2n_src}")
+
+        # Build directory and install prefix
+        s2n_build = join_path(self.stage.source_path, "s2n-tls-build")
+        s2n_prefix = join_path(self.stage.source_path, "s2n-tls-install")
+
+        os.makedirs(s2n_build, exist_ok=True)
+        os.makedirs(s2n_prefix, exist_ok=True)
+
+        # Get OpenSSL prefix for s2n-tls build
+        openssl_prefix = spec["openssl"].prefix
+
+        # Configure s2n-tls with CMake
+        cmake_args = [
+            f"-DCMAKE_INSTALL_PREFIX={s2n_prefix}",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DBUILD_SHARED_LIBS=ON",
+            f"-DCMAKE_PREFIX_PATH={openssl_prefix}",
+            s2n_src,
+        ]
+
+        tty.msg(f"Configuring s2n-tls with cmake in {s2n_build}")
+        cmake = which("cmake")
+        cmake(*cmake_args, cwd=s2n_build)
+
+        # Build s2n-tls
+        tty.msg("Building s2n-tls")
+        make = which("make")
+        make("-j4", cwd=s2n_build)
+
+        # Install s2n-tls
+        tty.msg(f"Installing s2n-tls to {s2n_prefix}")
+        make("install", cwd=s2n_build)
+
+        # Verify installation
+        s2n_lib = join_path(s2n_prefix, "lib", "libs2n.so")
+        s2n_header = join_path(s2n_prefix, "include", "s2n.h")
+        
+        if not os.path.exists(s2n_lib) and not os.path.exists(join_path(s2n_prefix, "lib64", "libs2n.so")):
+            raise InstallError(f"s2n-tls library not found at {s2n_lib}")
+        
+        tty.msg("✓ s2n-tls built and installed successfully")
 
     def configure(self, spec, prefix):
         """Override configure to add diagnostics for WITH_CURL detection."""
