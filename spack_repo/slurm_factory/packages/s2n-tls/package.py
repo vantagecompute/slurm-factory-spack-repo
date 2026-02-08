@@ -34,9 +34,9 @@ class S2nTls(CMakePackage):
     license("Apache-2.0")
 
     # Latest stable releases
-    version("1.5.14", sha256="b31e94d8c4b6e6f3e3c3b0c4a1c8b5f9e4a2d6c8e0f2a4b6d8c0e2f4a6b8d0e2")
-    version("1.5.13", sha256="a21e84d8b4c6e6f3e3c3b0c4a1c8b5f9e4a2d6c8e0f2a4b6d8c0e2f4a6b8d0e2")
-    version("1.5.12", sha256="c31f94d8c4b6e6f3e3c3b0c4a1c8b5f9e4a2d6c8e0f2a4b6d8c0e2f4a6b8d0e2")
+    version("1.5.14", sha256="3f65f1eca85a8ac279de204455a3e4940bc6ad4a1df53387d86136bcecde0c08")
+    version("1.5.13", sha256="ea4b0ea3585be97bb31ced70ba6190f29ddefec32d102e47b2906d402ec4b8df")
+    version("1.5.12", sha256="718866ea8276f4d5c78a4b6506561599a4ff5c05b3fccee7ef7ad6198b23e660")
 
     # Use main branch for development
     version("main", branch="main")
