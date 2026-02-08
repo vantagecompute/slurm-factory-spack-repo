@@ -38,11 +38,11 @@ class Slurm(AutotoolsPackage):
     """
 
     homepage = "https://slurm.schedmd.com"
-    url = "https://github.com/SchedMD/slurm/archive/slurm-21-08-8-2.tar.gz"
+    url = "https://github.com/SchedMD/slurm/releases"
 
     license("GPL-2.0-or-later")
 
-    version("25-11-1-1", sha256="85bcf02126ad9844761b363e8db53e5a51f620d4ec71b64dbccbe141d4fe90da")
+    version("25-11-2-1", sha256="719783317e46b6241ab5c8f1e3f91e1e34fda63b5a1cd21403fa7696ec8d517c")
     version("24-11-6-1", sha256="282708483326f381eb001a14852a1a82e65e18f37b62b7a5f4936c0ed443b600")
     version("23-11-11-1", sha256="e9234e664ce30be206f73c0ff1a5f33e0ce32be35ece812eac930fcaa9da2c2f")
 
@@ -57,6 +57,10 @@ class Slurm(AutotoolsPackage):
     variant("rsmi", default=False, description="Enable ROCm SMI support")
 
     # TODO: add support for checkpoint/restart (BLCR)
+
+    # s2n-tls for internal TLS support (tls/s2n plugin) - required for slurm >= 25.11
+    # Ref: https://slurm.schedmd.com/tls.html
+    depends_on("s2n-tls", when="@25-11-2-1:", type=("build", "link", "run"))
 
     # Dependencies
     depends_on("c", type="build")
@@ -307,6 +311,16 @@ Cflags: -I${{includedir}}
 
         if spec.satisfies("+rsmi"):
             args.append(f"--with-rsmi={spec['rocm-smi-lib'].prefix}")
+
+        # s2n-tls for internal TLS support (tls/s2n plugin) - enabled for slurm >= 25.11
+        # Ref: https://slurm.schedmd.com/tls.html
+        if spec.satisfies("@25-11-2-1:"):
+            s2n_prefix = spec["s2n-tls"].prefix
+            args.append("--with-s2n={0}".format(s2n_prefix))
+            cppflags.append("-I{0}/include".format(s2n_prefix))
+            ldflags.extend(
+                ["-L{0}/lib".format(s2n_prefix), "-Wl,-rpath,{0}/lib".format(s2n_prefix)]
+            )
 
         sysconfdir = spec.variants["sysconfdir"].value
         if sysconfdir != "PREFIX/etc":
