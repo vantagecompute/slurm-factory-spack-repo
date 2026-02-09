@@ -40,7 +40,7 @@ class Slurm(AutotoolsPackage):
     """
 
     homepage = "https://slurm.schedmd.com"
-    url = "https://github.com/SchedMD/slurm/releases"
+    url = "https://github.com/SchedMD/slurm/archive/slurm-21-08-8-2.tar.gz"
 
     license("GPL-2.0-or-later")
 
