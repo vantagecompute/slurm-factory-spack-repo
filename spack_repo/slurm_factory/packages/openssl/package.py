@@ -5,8 +5,8 @@
 import os
 import re
 
-from spack.build_systems.generic import Package as GenericPackage
 from spack.package import *
+from spack_repo.builtin.build_systems.generic import Package
 
 
 class Openssl(Package):  # Uses Fake Autotools, should subclass Package
