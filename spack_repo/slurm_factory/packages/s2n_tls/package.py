@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from spack_repo.builtin.build_systems.cmake import CMakePackage
+from spack.build_systems.cmake import CMakePackage
 from spack.package import *
 
 

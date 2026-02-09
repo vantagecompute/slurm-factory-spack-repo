@@ -7,10 +7,10 @@ import os
 import re
 import sys
 
+from spack.build_systems.autotools import AutotoolsBuilder, AutotoolsPackage
+from spack.build_systems.cmake import CMakeBuilder, CMakePackage
+from spack.build_systems.nmake import NMakeBuilder, NMakePackage
 from spack.package import *
-from spack_repo.builtin.build_systems.autotools import AutotoolsBuilder, AutotoolsPackage
-from spack_repo.builtin.build_systems.cmake import CMakeBuilder, CMakePackage
-from spack_repo.builtin.build_systems.nmake import NMakeBuilder, NMakePackage
 
 IS_WINDOWS = sys.platform == "win32"
 
