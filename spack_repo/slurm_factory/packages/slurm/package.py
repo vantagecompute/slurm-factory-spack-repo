@@ -405,16 +405,21 @@ Cflags: -I${{includedir}}
 
         tty.msg(f"Configuring s2n-tls with cmake in {s2n_build}")
         cmake = which("cmake")
-        cmake(*cmake_args, cwd=s2n_build)
+        # Spack 1.0 API: use working_dir context manager instead of cwd parameter
+        with working_dir(s2n_build):
+            cmake(*cmake_args)
 
         # Build s2n-tls
         tty.msg("Building s2n-tls")
         make = which("make")
-        make("-j4", cwd=s2n_build)
+        # Spack 1.0 API: use working_dir context manager instead of cwd parameter
+        with working_dir(s2n_build):
+            make("-j4")
 
         # Install s2n-tls
         tty.msg(f"Installing s2n-tls to {s2n_prefix}")
-        make("install", cwd=s2n_build)
+        with working_dir(s2n_build):
+            make("install")
 
         # Verify installation
         s2n_lib = join_path(s2n_prefix, "lib", "libs2n.so")
