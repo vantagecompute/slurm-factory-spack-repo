@@ -73,6 +73,8 @@ class Slurm(AutotoolsPackage):
 
     # cmake is needed to build s2n-tls
     depends_on("cmake@3.0:", type="build", when="@25-11-2-1:")
+    # patchelf is needed to fix rpaths for s2n-tls libraries
+    depends_on("patchelf", type="build", when="@25-11-2-1:")
 
     # Dependencies
     depends_on("c", type="build")
@@ -456,6 +458,111 @@ Cflags: -I${{includedir}}
                     tty.error("✗ libslurm_curl.la target NOT found in src/curl/Makefile!")
         else:
             tty.error("✗ src/curl/Makefile does not exist!")
+
+    @run_after("install")
+    def install_s2n_library(self):
+        """
+        Copy s2n-tls libraries to the final installation directory.
+
+        The tls_s2n.so plugin requires libs2n.so.1 at runtime.
+        s2n-tls is built as a resource into a temporary directory during the build phase,
+        but it needs to be copied to the final installation for runtime use.
+        """
+        spec = self.spec
+        if not spec.satisfies("@25-11-2-1:"):
+            return
+
+        import shutil
+        import glob
+
+        tty.msg("Installing s2n-tls libraries for TLS plugin support")
+
+        # Source directory where s2n-tls was built
+        s2n_prefix = join_path(self.stage.source_path, "s2n-tls-install")
+
+        # Find the s2n library directory (could be lib or lib64)
+        s2n_lib_dir = None
+        for lib_subdir in ["lib", "lib64"]:
+            candidate = join_path(s2n_prefix, lib_subdir)
+            if os.path.exists(candidate) and os.path.exists(join_path(candidate, "libs2n.so")):
+                s2n_lib_dir = candidate
+                break
+
+        if not s2n_lib_dir:
+            tty.warn(f"s2n-tls library directory not found in {s2n_prefix}")
+            return
+
+        # Destination lib directory
+        dest_lib_dir = self.prefix.lib
+
+        # Copy all s2n library files (shared libraries and symlinks)
+        for pattern in ["libs2n.so*", "libs2n.a"]:
+            for src_file in glob.glob(join_path(s2n_lib_dir, pattern)):
+                filename = os.path.basename(src_file)
+                dest_file = join_path(dest_lib_dir, filename)
+
+                if os.path.islink(src_file):
+                    # Copy symlink
+                    link_target = os.readlink(src_file)
+                    if os.path.exists(dest_file) or os.path.islink(dest_file):
+                        os.remove(dest_file)
+                    os.symlink(link_target, dest_file)
+                    tty.msg(f"  Created symlink: {filename} -> {link_target}")
+                else:
+                    # Copy actual file
+                    shutil.copy2(src_file, dest_file)
+                    tty.msg(f"  Copied: {filename}")
+
+        # Verify libs2n.so.1 exists (this is what tls_s2n.so needs)
+        s2n_so_1 = join_path(dest_lib_dir, "libs2n.so.1")
+        if os.path.exists(s2n_so_1) or os.path.islink(s2n_so_1):
+            tty.msg("✓ libs2n.so.1 installed successfully")
+        else:
+            # Try to find what was installed and create the symlink if needed
+            for f in os.listdir(dest_lib_dir):
+                if f.startswith("libs2n.so.1."):
+                    os.symlink(f, s2n_so_1)
+                    tty.msg(f"✓ Created libs2n.so.1 -> {f}")
+                    break
+            else:
+                tty.warn("libs2n.so.1 not found after installation")
+
+        # Fix the rpath of tls_s2n.so to point to $ORIGIN/.. (which resolves to lib/)
+        # The plugin is in lib/slurm/ and libs2n.so is in lib/
+        tls_s2n_plugin = join_path(self.prefix.lib, "slurm", "tls_s2n.so")
+        if os.path.exists(tls_s2n_plugin):
+            patchelf = exe.which("patchelf")
+            if patchelf:
+                try:
+                    # Get current rpath
+                    current_rpath = patchelf("--print-rpath", tls_s2n_plugin, output=str).strip()
+                    tty.msg(f"  tls_s2n.so current rpath: {current_rpath}")
+
+                    # Build new rpath replacing the temporary s2n path with $ORIGIN/..
+                    new_rpath_parts = []
+                    for part in current_rpath.split(":"):
+                        if "s2n-tls-install" in part:
+                            # Replace temporary path with $ORIGIN/..
+                            new_rpath_parts.append("$ORIGIN/..")
+                        else:
+                            new_rpath_parts.append(part)
+
+                    # Add $ORIGIN/.. if not already present
+                    if "$ORIGIN/.." not in new_rpath_parts:
+                        new_rpath_parts.insert(0, "$ORIGIN/..")
+
+                    new_rpath = ":".join(new_rpath_parts)
+                    patchelf("--set-rpath", new_rpath, tls_s2n_plugin)
+                    tty.msg(f"  tls_s2n.so new rpath: {new_rpath}")
+                    tty.msg("✓ Fixed tls_s2n.so rpath")
+                except Exception as e:
+                    tty.warn(f"Could not patch tls_s2n.so rpath: {e}")
+            else:
+                tty.warn("patchelf not found - tls_s2n.so rpath may need manual fixing")
+        else:
+            tty.warn(f"tls_s2n.so not found at {tls_s2n_plugin}")
+
+        tty.msg("✓ s2n-tls libraries installed to prefix")
 
     @run_after("install")
     def install_curl_library(self):
