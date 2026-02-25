@@ -393,15 +393,43 @@ Cflags: -I${{includedir}}
         os.makedirs(s2n_build, exist_ok=True)
         os.makedirs(s2n_prefix, exist_ok=True)
 
-        # Get OpenSSL prefix for s2n-tls build
+        # Get OpenSSL prefix for s2n-tls build — MUST use the spack-built OpenSSL,
+        # not the system one. s2n-tls uses a custom FindCrypto.cmake that searches
+        # for libcrypto. We need to:
+        #  1. Point CMAKE_PREFIX_PATH and OPENSSL_ROOT_DIR to the spack OpenSSL
+        #  2. Disable system path searching so CMake doesn't find /usr/lib/libcrypto
+        #  3. Set RPATH on the installed libs2n.so so it loads the spack libcrypto
+        #     at runtime (not the system one)
         openssl_prefix = spec["openssl"].prefix
+        openssl_lib_dir = join_path(openssl_prefix, "lib")
+
+        # Find the actual library files to pass explicitly
+        openssl_ssl_lib = join_path(openssl_lib_dir, "libssl.so")
+        openssl_crypto_lib = join_path(openssl_lib_dir, "libcrypto.so")
+        openssl_include_dir = join_path(openssl_prefix, "include")
+
+        tty.msg(f"s2n-tls will use spack OpenSSL from {openssl_prefix}")
+        tty.msg(f"  libcrypto: {openssl_crypto_lib} (exists={os.path.exists(openssl_crypto_lib)})")
+        tty.msg(f"  libssl:    {openssl_ssl_lib} (exists={os.path.exists(openssl_ssl_lib)})")
+        tty.msg(f"  headers:   {openssl_include_dir} (exists={os.path.exists(openssl_include_dir)})")
 
         # Configure s2n-tls with CMake
         cmake_args = [
             f"-DCMAKE_INSTALL_PREFIX={s2n_prefix}",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DBUILD_SHARED_LIBS=ON",
+            # Point CMake to spack OpenSSL for find_package / FindCrypto.cmake
             f"-DCMAKE_PREFIX_PATH={openssl_prefix}",
+            f"-DOPENSSL_ROOT_DIR={openssl_prefix}",
+            # Explicit library/include paths as fallback
+            f"-DOPENSSL_INCLUDE_DIR={openssl_include_dir}",
+            f"-DOPENSSL_SSL_LIBRARY={openssl_ssl_lib}",
+            f"-DOPENSSL_CRYPTO_LIBRARY={openssl_crypto_lib}",
+            # Don't search system paths — avoids picking up /usr/lib/libcrypto
+            "-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF",
+            # Bake RPATH into libs2n.so so it finds spack libcrypto at runtime
+            f"-DCMAKE_INSTALL_RPATH={openssl_lib_dir}",
+            "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
             s2n_src,
         ]
 
@@ -429,7 +457,23 @@ Cflags: -I${{includedir}}
         
         if not os.path.exists(s2n_lib) and not os.path.exists(join_path(s2n_prefix, "lib64", "libs2n.so")):
             raise InstallError(f"s2n-tls library not found at {s2n_lib}")
-        
+
+        # Verify libs2n.so linked against spack OpenSSL (not system)
+        ldd = which("ldd")
+        if ldd:
+            actual_lib = s2n_lib if os.path.exists(s2n_lib) else join_path(s2n_prefix, "lib64", "libs2n.so")
+            try:
+                ldd_output = ldd(actual_lib, output=str, error=str)
+                tty.msg(f"  libs2n.so linkage:")
+                for line in ldd_output.splitlines():
+                    if "crypto" in line or "ssl" in line:
+                        tty.msg(f"    {line.strip()}")
+                        if "/usr/lib" in line and str(openssl_prefix) not in line:
+                            tty.warn(f"  WARNING: libs2n.so linked to system OpenSSL: {line.strip()}")
+                            tty.warn(f"  Expected spack OpenSSL at: {openssl_prefix}")
+            except Exception as e:
+                tty.debug(f"Could not verify libs2n.so linkage: {e}")
+
         tty.msg("✓ s2n-tls built and installed successfully")
 
     def configure(self, spec, prefix):
@@ -529,6 +573,8 @@ Cflags: -I${{includedir}}
 
         # Fix the rpath of tls_s2n.so to point to $ORIGIN/.. (which resolves to lib/)
         # The plugin is in lib/slurm/ and libs2n.so is in lib/
+        # Also include OpenSSL lib dir so libs2n.so can find libcrypto.so at runtime
+        openssl_lib_dir = join_path(spec["openssl"].prefix, "lib")
         tls_s2n_plugin = join_path(self.prefix.lib, "slurm", "tls_s2n.so")
         if os.path.exists(tls_s2n_plugin):
             patchelf = exe.which("patchelf")
@@ -551,6 +597,10 @@ Cflags: -I${{includedir}}
                     if "$ORIGIN/.." not in new_rpath_parts:
                         new_rpath_parts.insert(0, "$ORIGIN/..")
 
+                    # Ensure spack OpenSSL lib dir is in RPATH
+                    if openssl_lib_dir not in new_rpath_parts:
+                        new_rpath_parts.append(openssl_lib_dir)
+
                     new_rpath = ":".join(new_rpath_parts)
                     patchelf("--set-rpath", new_rpath, tls_s2n_plugin)
                     tty.msg(f"  tls_s2n.so new rpath: {new_rpath}")
@@ -561,6 +611,44 @@ Cflags: -I${{includedir}}
                 tty.warn("patchelf not found - tls_s2n.so rpath may need manual fixing")
         else:
             tty.warn(f"tls_s2n.so not found at {tls_s2n_plugin}")
+
+        # Also fix RPATH on libs2n.so itself — it links to libcrypto.so and must
+        # find the spack-built OpenSSL at runtime, not the system one
+        # Find the actual .so file (not a symlink) for patching
+        libs2n_real = None
+        for f in sorted(os.listdir(dest_lib_dir)):
+            fpath = join_path(dest_lib_dir, f)
+            if f.startswith("libs2n.so") and not os.path.islink(fpath):
+                libs2n_real = fpath
+                break
+
+        if libs2n_real:
+            patchelf = exe.which("patchelf")
+            if patchelf:
+                try:
+                    current_rpath = patchelf("--print-rpath", libs2n_real, output=str).strip()
+                    tty.msg(f"  libs2n.so current rpath: {current_rpath}")
+
+                    # Build new rpath — replace temporary build paths, keep OpenSSL
+                    new_rpath_parts = []
+                    for part in current_rpath.split(":"):
+                        if "s2n-tls-install" in part or "s2n-tls-build" in part:
+                            continue  # drop temporary build paths
+                        if part:
+                            new_rpath_parts.append(part)
+
+                    # Ensure spack OpenSSL lib dir is in RPATH
+                    if openssl_lib_dir not in new_rpath_parts:
+                        new_rpath_parts.append(openssl_lib_dir)
+
+                    new_rpath = ":".join(new_rpath_parts)
+                    patchelf("--set-rpath", new_rpath, libs2n_real)
+                    tty.msg(f"  libs2n.so new rpath: {new_rpath}")
+                    tty.msg("✓ Fixed libs2n.so rpath to use spack OpenSSL")
+                except Exception as e:
+                    tty.warn(f"Could not patch libs2n.so rpath: {e}")
+        else:
+            tty.warn("libs2n.so real file not found for rpath patching")
 
         tty.msg("✓ s2n-tls libraries installed to prefix")
 
