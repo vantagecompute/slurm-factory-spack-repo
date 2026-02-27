@@ -418,6 +418,10 @@ Cflags: -I${{includedir}}
             f"-DCMAKE_INSTALL_PREFIX={s2n_prefix}",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DBUILD_SHARED_LIBS=ON",
+            # Disable tests — we only need libs2n.so for the Slurm tls/s2n plugin.
+            # Building tests requires `ar` which may not be on PATH in the spack
+            # build environment, causing "no such file or directory" at link time.
+            "-DBUILD_TESTING=OFF",
             # Point CMake to spack OpenSSL for find_package / FindCrypto.cmake
             f"-DCMAKE_PREFIX_PATH={openssl_prefix}",
             f"-DOPENSSL_ROOT_DIR={openssl_prefix}",
