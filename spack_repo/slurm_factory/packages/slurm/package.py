@@ -401,7 +401,12 @@ Cflags: -I${{includedir}}
         #  3. Set RPATH on the installed libs2n.so so it loads the spack libcrypto
         #     at runtime (not the system one)
         openssl_prefix = spec["openssl"].prefix
-        openssl_lib_dir = join_path(openssl_prefix, "lib")
+
+        # OpenSSL 3.x on x86_64 installs to lib64, not lib — detect the correct one
+        openssl_lib_dir = join_path(openssl_prefix, "lib64")
+        if not os.path.exists(join_path(openssl_lib_dir, "libcrypto.so")):
+            openssl_lib_dir = join_path(openssl_prefix, "lib")
+        tty.msg(f"Using OpenSSL lib dir: {openssl_lib_dir}")
 
         # Find the actual library files to pass explicitly
         openssl_ssl_lib = join_path(openssl_lib_dir, "libssl.so")
@@ -578,7 +583,10 @@ Cflags: -I${{includedir}}
         # Fix the rpath of tls_s2n.so to point to $ORIGIN/.. (which resolves to lib/)
         # The plugin is in lib/slurm/ and libs2n.so is in lib/
         # Also include OpenSSL lib dir so libs2n.so can find libcrypto.so at runtime
-        openssl_lib_dir = join_path(spec["openssl"].prefix, "lib")
+        # OpenSSL 3.x on x86_64 installs to lib64, not lib — detect the correct one
+        openssl_lib_dir = join_path(spec["openssl"].prefix, "lib64")
+        if not os.path.exists(join_path(openssl_lib_dir, "libcrypto.so")):
+            openssl_lib_dir = join_path(spec["openssl"].prefix, "lib")
         tls_s2n_plugin = join_path(self.prefix.lib, "slurm", "tls_s2n.so")
         if os.path.exists(tls_s2n_plugin):
             patchelf = exe.which("patchelf")
@@ -641,9 +649,20 @@ Cflags: -I${{includedir}}
                         if part:
                             new_rpath_parts.append(part)
 
-                    # Ensure spack OpenSSL lib dir is in RPATH
+                    # Ensure spack OpenSSL lib dir is in RPATH (absolute, for spack env use)
                     if openssl_lib_dir not in new_rpath_parts:
                         new_rpath_parts.append(openssl_lib_dir)
+
+                    # CRITICAL: Add $ORIGIN-relative paths so libs2n.so can find
+                    # libcrypto.so when deployed via a spack view/tarball where the
+                    # absolute spack install paths no longer exist.
+                    # libs2n.so lives in <view>/lib/ and libcrypto.so lives in:
+                    #   <view>/lib64/  (OpenSSL 3.x on x86_64)
+                    #   <view>/lib/    (fallback)
+                    #   <view>/lib/private/  (spack view conflict resolution)
+                    for origin_path in ["$ORIGIN", "$ORIGIN/../lib64", "$ORIGIN/../lib/private"]:
+                        if origin_path not in new_rpath_parts:
+                            new_rpath_parts.insert(0, origin_path)
 
                     new_rpath = ":".join(new_rpath_parts)
                     patchelf("--set-rpath", new_rpath, libs2n_real)
