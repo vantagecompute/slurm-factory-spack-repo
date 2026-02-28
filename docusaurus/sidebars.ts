@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
         'packages/curl',
         'packages/freeipmi',
         'packages/openssl',
+        'packages/s2n-tls',
       ],
     },
     {
