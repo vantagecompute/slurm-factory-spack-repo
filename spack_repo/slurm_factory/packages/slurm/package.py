@@ -60,7 +60,7 @@ class Slurm(AutotoolsPackage):
 
     # s2n-tls for internal TLS support (tls/s2n plugin) - required for slurm >= 25.11
     # Ref: https://slurm.schedmd.com/tls.html
-    depends_on("s2n-tls", type=("build", "link", "run"), when="@25-11-2-1:")
+    depends_on("s2n_tls", type=("build", "link", "run"), when="@25-11-2-1:")
     # patchelf is needed to fix rpaths for tls_s2n.so plugin
     depends_on("patchelf", type="build", when="@25-11-2-1:")
 
@@ -317,7 +317,7 @@ Cflags: -I${{includedir}}
         # s2n-tls for internal TLS support (tls/s2n plugin) - enabled for slurm >= 25.11
         # Ref: https://slurm.schedmd.com/tls.html
         if spec.satisfies("@25-11-2-1:"):
-            s2n_prefix = spec["s2n-tls"].prefix
+            s2n_prefix = spec["s2n_tls"].prefix
             args.append("--with-s2n={0}".format(s2n_prefix))
             cppflags.append("-I{0}/include".format(s2n_prefix))
             # Detect s2n lib dir (lib vs lib64)
@@ -568,7 +568,7 @@ Cflags: -I${{includedir}}
         env.prepend_path("LD_LIBRARY_PATH", os.path.join(self.prefix.lib, "slurm"))
 
         # Add runtime dependency library paths
-        for dep_name in ["curl", "libssh2", "openssl", "libjwt", "munge", "json-c", "lz4", "glib", "s2n-tls"]:
+        for dep_name in ["curl", "libssh2", "openssl", "libjwt", "munge", "json-c", "lz4", "glib", "s2n_tls"]:
             if dep_name in spec:
                 dep_spec = spec[dep_name]
                 if hasattr(dep_spec.prefix, "lib"):
