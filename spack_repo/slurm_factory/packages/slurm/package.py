@@ -38,14 +38,14 @@ class Slurm(AutotoolsPackage):
     """
 
     homepage = "https://slurm.schedmd.com"
-    url = "https://github.com/SchedMD/slurm/archive/slurm-21-08-8-2.tar.gz"
+    url = "https://download.schedmd.com/slurm/slurm-21.08.8.tar.bz2"
 
     license("GPL-2.0-or-later")
 
-    version("26-05-0-1", sha256="449453cbd53df4bf2d06bc22d2703fc1cb5d0f52761f60cf3d783edfc57a9b77")
-    version("25-11-6-1", sha256="2e305a5cc051d08ded4d710e349636b6a054da2c371bbce85797744b693ca790")
-    version("24-11-6-1", sha256="282708483326f381eb001a14852a1a82e65e18f37b62b7a5f4936c0ed443b600")
-    version("23-11-11-1", sha256="e9234e664ce30be206f73c0ff1a5f33e0ce32be35ece812eac930fcaa9da2c2f")
+    version("26-05-0-1", sha256="767f0f7f9bc0fb61bb3f67e27882ec190d1ba5a9b2814b7177388e5793c0dae6")
+    version("25-11-6-1", sha256="6695aee51a36799917a4db4b1d787610af926b27b17c2e4246bf14c0fd029664")
+    version("24-11-6-1", sha256="0614760306dfbd67eb76a31ed7a49e853fe3cdb48ca28ccdbe699c2e0db05a16")
+    version("23-11-11-1", sha256="4a1713dceb5bfad74d3f43c9bfedf23603933f0d7148cdad7feedea57da4e45d")
 
     variant(
         "sysconfdir",
@@ -131,6 +131,15 @@ class Slurm(AutotoolsPackage):
         if not match:
             return 0
         return int(match.group(1))
+
+    def url_for_version(self, version):
+        parts = str(version).split("-")
+        if len(parts) >= 4 and parts[-1].isdigit():
+            release_version = ".".join(parts[:-1])
+        else:
+            release_version = str(version).replace("-", ".")
+
+        return f"https://download.schedmd.com/slurm/slurm-{release_version}.tar.bz2"
 
     def flag_handler(self, name, flags):
         wrapper_flags = None
