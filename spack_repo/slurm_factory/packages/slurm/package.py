@@ -16,8 +16,8 @@ import re
 
 import spack.llnl.util.tty as tty
 import spack.util.executable as exe
-from spack_repo.builtin.build_systems.autotools import AutotoolsPackage
 from spack.package import *
+from spack_repo.builtin.build_systems.autotools import AutotoolsPackage
 
 
 class Slurm(AutotoolsPackage):
@@ -42,7 +42,8 @@ class Slurm(AutotoolsPackage):
 
     license("GPL-2.0-or-later")
 
-    version("25-11-2-1", sha256="719783317e46b6241ab5c8f1e3f91e1e34fda63b5a1cd21403fa7696ec8d517c")
+    version("26-05-0-1", sha256="449453cbd53df4bf2d06bc22d2703fc1cb5d0f52761f60cf3d783edfc57a9b77")
+    version("25-11-6-1", sha256="2e305a5cc051d08ded4d710e349636b6a054da2c371bbce85797744b693ca790")
     version("24-11-6-1", sha256="282708483326f381eb001a14852a1a82e65e18f37b62b7a5f4936c0ed443b600")
     version("23-11-11-1", sha256="e9234e664ce30be206f73c0ff1a5f33e0ce32be35ece812eac930fcaa9da2c2f")
 
@@ -58,11 +59,11 @@ class Slurm(AutotoolsPackage):
 
     # TODO: add support for checkpoint/restart (BLCR)
 
-    # s2n-tls for internal TLS support (tls/s2n plugin) - required for slurm >= 25.11
+    # s2n-tls for internal TLS support (tls/s2n plugin) - required for slurm >= 25.x
     # Ref: https://slurm.schedmd.com/tls.html
-    depends_on("s2n-tls", type=("build", "link", "run"), when="@25-11-2-1:")
+    depends_on("s2n-tls", type=("build", "link", "run"), when="@25:")
     # patchelf is needed to fix rpaths for tls_s2n.so plugin
-    depends_on("patchelf", type="build", when="@25-11-2-1:")
+    depends_on("patchelf", type="build", when="@25:")
 
     # Dependencies
     depends_on("c", type="build")
@@ -123,6 +124,13 @@ class Slurm(AutotoolsPackage):
         output = Executable(exe)("--version", output=str).rstrip()
         match = re.search(r"slurm(?:-wlm)?\s*([0-9.]+)", output)
         return match.group(1) if match else None
+
+    @staticmethod
+    def release_major(version):
+        match = re.match(r"^(\d+)", str(version))
+        if not match:
+            return 0
+        return int(match.group(1))
 
     def flag_handler(self, name, flags):
         wrapper_flags = None
@@ -268,7 +276,10 @@ Cflags: -I${{includedir}}
 
         # slurmrestd support
         args.append("--enable-slurmrestd")
-        args.append("--with-http-parser={0}".format(spec["http-parser"].prefix))
+        if self.release_major(spec.version) >= 26:
+            args.append("--with-libhttp-parser={0}".format(spec["http-parser"].prefix))
+        else:
+            args.append("--with-http-parser={0}".format(spec["http-parser"].prefix))
 
         # HDF5 support
         args.append("--with-hdf5={0}".format(spec["hdf5"].prefix.bin.h5cc))
@@ -314,9 +325,9 @@ Cflags: -I${{includedir}}
         if spec.satisfies("+rsmi"):
             args.append(f"--with-rsmi={spec['rocm-smi-lib'].prefix}")
 
-        # s2n-tls for internal TLS support (tls/s2n plugin) - enabled for slurm >= 25.11
+        # s2n-tls for internal TLS support (tls/s2n plugin) - enabled for slurm >= 25.x
         # Ref: https://slurm.schedmd.com/tls.html
-        if spec.satisfies("@25-11-2-1:"):
+        if spec.satisfies("@25:"):
             s2n_prefix = spec["s2n-tls"].prefix
             args.append("--with-s2n={0}".format(s2n_prefix))
             cppflags.append("-I{0}/include".format(s2n_prefix))
@@ -382,7 +393,7 @@ Cflags: -I${{includedir}}
         $ORIGIN-relative paths so it works in spack views and tarballs.
         """
         spec = self.spec
-        if not spec.satisfies("@25-11-2-1:"):
+        if not spec.satisfies("@25:"):
             return
 
         tls_s2n_plugin = join_path(self.prefix.lib, "slurm", "tls_s2n.so")
