@@ -40,12 +40,13 @@ class Pyxis(MakefilePackage):
     # Pyxis builds against slurm headers (spank.h)
     depends_on("slurm_factory.slurm", type=("build", "link"))
 
+    def setup_build_environment(self, env):
+        slurm_prefix = self.spec["slurm"].prefix
+        env.append_flags("CPPFLAGS", f"-I{slurm_prefix}/include")
+
     @property
     def build_targets(self):
-        spec = self.spec
-        slurm_prefix = spec["slurm"].prefix
         return [
-            f"CPPFLAGS=-I{slurm_prefix}/include",
             "CC={0}".format(spack_cc),
         ]
 
