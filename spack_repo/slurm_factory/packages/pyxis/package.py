@@ -43,7 +43,7 @@ class Pyxis(MakefilePackage):
     @property
     def build_targets(self):
         spec = self.spec
-        slurm_prefix = spec["slurm_factory.slurm"].prefix
+        slurm_prefix = spec["slurm"].prefix
         return [
             f"CPPFLAGS=-I{slurm_prefix}/include",
             "CC={0}".format(spack_cc),
