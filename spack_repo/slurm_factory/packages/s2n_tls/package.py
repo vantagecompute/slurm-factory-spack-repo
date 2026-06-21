@@ -31,12 +31,12 @@ class S2nTls(CMakePackage):
     """
 
     homepage = "https://github.com/aws/s2n-tls"
-    url = "https://github.com/aws/s2n-tls/archive/refs/tags/v1.5.14.tar.gz"
+    url = "https://github.com/aws/s2n-tls/archive/refs/tags/v1.7.4.tar.gz"
     git = "https://github.com/aws/s2n-tls.git"
 
     license("Apache-2.0")
 
-    version("1.5.14", sha256="3f65f1eca85a8ac279de204455a3e4940bc6ad4a1df53387d86136bcecde0c08")
+    version("1.7.4", sha256="d2fbf45c0e039bdb6f253a392fc8bbdd258bfe0bd586f3516a2c97bb138b8e17")
 
     variant("shared", default=True, description="Build shared libraries")
 
