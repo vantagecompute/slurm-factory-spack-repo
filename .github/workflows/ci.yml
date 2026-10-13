@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   commitlint:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && fromJSON(vars.SELF_HOSTED_RUNS_ON || '{"group":"vantage-eng","labels":["X64"]}') || 'ubuntu-26.04' }}
     permissions:
       contents: read
     if: github.event_name == 'pull_request'
@@ -45,14 +45,16 @@ jobs:
 
   ci-tests:
     name: CI-Tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && fromJSON(vars.SELF_HOSTED_RUNS_ON || '{"group":"vantage-eng","labels":["X64"]}') || 'ubuntu-26.04' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install `just`
-        run: sudo snap install just --classic
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
       - name: Install `uv`
-        run: sudo snap install astral-uv --classic
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: ${{ runner.environment == 'github-hosted' }}
       - name: Run linters
         run: just lint
       - name: Run Typecheck

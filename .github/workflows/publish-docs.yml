@@ -40,7 +40,7 @@ env:
 jobs:
   update-docs:
     name: Update Documentation
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && fromJSON(vars.SELF_HOSTED_RUNS_ON || '{"group":"vantage-eng","labels":["X64"]}') || 'ubuntu-26.04' }}
     environment: github-pages
 
     steps:
@@ -50,17 +50,22 @@ jobs:
           # GITHUB_TOKEN is provided automatically; no need to pass from secrets
           token: ${{ github.token }}
 
-      - uses: actions/setup-node@v4
+      # Caches only on GitHub-hosted runners: a self-hosted runner keeps the
+      # yarn cache on local disk.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
-          cache: yarn
+          cache: ${{ runner.environment == 'github-hosted' && 'yarn' || '' }}
           cache-dependency-path: docusaurus/yarn.lock
+          package-manager-cache: ${{ runner.environment == 'github-hosted' }}
 
       - name: Install just
-        run: sudo snap install just --classic
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
 
       - name: Install UV
-        run: sudo snap install astral-uv --classic
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: ${{ runner.environment == 'github-hosted' }}
 
       - name: Ensure GitHub CLI auth
         env:
