@@ -106,28 +106,28 @@ HEADER_EXTENSIONS = {
 def should_skip(path: Path) -> bool:
     """Check if a file/directory should be skipped."""
     path_str = str(path)
-    
+
     # Skip by pattern
     for pattern in SKIP_PATTERNS:
         if pattern in path_str:
             return True
-    
+
     # Skip if in data directory
     if "/data/" in path_str or path_str.startswith("data/"):
         return True
-    
+
     # Skip markdown files (documentation)
     if path.suffix == ".md":
         return True
-    
+
     # Skip JSON files
     if path.suffix == ".json":
         return True
-    
+
     # Skip TypeScript/JavaScript files (different license header style)
     if path.suffix in {".ts", ".tsx", ".js", ".jsx"}:
         return True
-    
+
     return False
 
 
@@ -150,26 +150,26 @@ def add_header_to_file(filepath: Path, header: str) -> bool:
     except (UnicodeDecodeError, PermissionError) as e:
         print(f"  Skipping {filepath} (read error: {e})")
         return False
-    
+
     if not content.strip():
         print(f"  Skipping {filepath} (empty file)")
         return False
-    
+
     if has_license_header(content):
         print(f"  Already has header: {filepath}")
         return False
-    
+
     # Preserve shebang if present
     lines = content.split("\n")
     new_content = ""
-    
+
     if lines and lines[0].startswith("#!"):
         new_content = lines[0] + "\n" + header
         if len(lines) > 1:
             new_content += "\n".join(lines[1:])
     else:
         new_content = header + content
-    
+
     try:
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(new_content)
@@ -184,39 +184,39 @@ def scan_and_add_headers(root_dir: Path) -> tuple[int, int]:
     """Scan directory and add headers to files."""
     added_count = 0
     total_checked = 0
-    
+
     for filepath in root_dir.rglob("*"):
         if not filepath.is_file():
             continue
-        
+
         if should_skip(filepath):
             continue
-        
+
         # Check if file extension needs header
         header = HEADER_EXTENSIONS.get(filepath.suffix)
         if not header:
             continue
-        
+
         total_checked += 1
-        
+
         if add_header_to_file(filepath, header):
             added_count += 1
-    
+
     return added_count, total_checked
 
 
 def main():
-    """Main function."""
+    """Add the license header to every file that lacks one."""
     print("Scanning for files that need license headers...\n")
-    
+
     root_dir = Path(__file__).parent.parent
     added, total = scan_and_add_headers(root_dir)
-    
-    print(f"\n{'='*60}")
-    print(f"Summary:")
+
+    print(f"\n{'=' * 60}")
+    print("Summary:")
     print(f"  Files checked: {total}")
     print(f"  Headers added: {added}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
 
 if __name__ == "__main__":

@@ -163,6 +163,6 @@ FreeIPMI is licensed under GPL-3.0-or-later.
 
 ## See Also
 
-- [Slurm Package](./slurm) - Enable with `+ipmi` variant
-- [Getting Started](../getting-started) - Installation guide
+- [Slurm Package](./slurm.md) - Enable with `+ipmi` variant
+- [Getting Started](../getting-started.md) - Installation guide
 - [Slurm Power Management](https://slurm.schedmd.com/power_mgmt.html) - Official docs

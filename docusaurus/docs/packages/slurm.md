@@ -255,7 +255,7 @@ GCC 10+ requires the `-fcommon` flag for Slurm versions &lt;= 20.02.1. This is a
 
 ## See Also
 
-- [Getting Started](../getting-started) - Installation guide
-- [OpenSSL Package](./openssl) - Custom OpenSSL for dependencies
-- [FreeIPMI Package](./freeipmi) - IPMI support
+- [Getting Started](../getting-started.md) - Installation guide
+- [OpenSSL Package](./openssl.md) - Custom OpenSSL for dependencies
+- [FreeIPMI Package](./freeipmi.md) - IPMI support
 - [Slurm Documentation](https://slurm.schedmd.com/documentation.html) - Official Slurm docs

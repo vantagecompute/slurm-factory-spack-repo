@@ -81,11 +81,12 @@ If your changes affect user-facing functionality:
 
 ### 5. Commit Changes
 
-Write clear, descriptive commit messages:
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/), and CI
+checks every commit in a pull request against `.commitlintrc.yml`:
 
 ```bash
 git add .
-git commit -m "Add IPMI variant to Slurm package
+git commit -m "feat(slurm): add ipmi variant
 
 - Add +ipmi variant for FreeIPMI support
 - Add freeipmi dependency
@@ -96,10 +97,20 @@ git commit -m "Add IPMI variant to Slurm package
 
 Commit message guidelines:
 
-- Use present tense ("Add feature" not "Added feature")
-- First line: brief summary (50 chars or less)
+- Header: `<type>[(<scope>)]: <summary>`, where the type is one of `fix`, `feat`,
+  `chore`, `security`, `ci`, `docs`, `test`, `refactor`, `perf`, `release` or
+  `cherry-pick`
+- Lowercase summary of at most 80 characters, with no trailing period
 - Blank line, then detailed description if needed
+- Signal a breaking change with a `BREAKING CHANGE:` footer, never `type!:`
 - Reference issue numbers when applicable
+
+Before pushing, run the same checks CI runs:
+
+```bash
+just check       # lint, typecheck and tests
+just docs-build  # the docs site, including the generated package reference
+```
 
 ### 6. Push and Create Pull Request
 
@@ -169,6 +180,8 @@ spack install slurm@version ~variant1
 ### Documentation
 
 - Update package documentation in `docusaurus/docs/packages/`
+- Keep the class docstring in `package.py` current: the
+  [Package Reference](./package-reference/index.md) is generated from it on every docs build
 - Include examples of new variants
 - Document any special configuration requirements
 - Update version tables
@@ -203,7 +216,7 @@ Be respectful and constructive in all interactions. We aim to maintain a welcomi
 If you have questions about contributing:
 
 - Open a [GitHub Discussion](https://github.com/vantagecompute/slurm-factory-spack-repo/discussions)
-- Check the [Contact page](./contact) for other ways to get in touch
+- Check the [Contact page](./contact.md) for other ways to get in touch
 
 ## Thank You
 

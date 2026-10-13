@@ -61,4 +61,4 @@ For commercial support, consulting, or custom Slurm deployments, contact Vantage
 
 ## Contributing
 
-Interested in contributing? See the [Contributing Guide](./contributing) for details on how to get started.
+Interested in contributing? See the [Contributing Guide](./contributing.md) for details on how to get started.

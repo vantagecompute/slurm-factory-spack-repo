@@ -73,25 +73,25 @@ Enhanced Slurm workload manager with production optimizations.
 - `nvml` - NVIDIA GPU support
 - `rsmi` - AMD ROCm GPU support
 
-See [Slurm Package Documentation](./packages/slurm) for complete variant list.
+See [Slurm Package Documentation](./packages/slurm.md) for complete variant list.
 
 ### curl
 
 Command-line URL transfer utility with LDAP support (required for Slurm's InfluxDB plugin).
 
-See [curl Package Documentation](./packages/curl) for details.
+See [curl Package Documentation](./packages/curl.md) for details.
 
 ### freeipmi
 
 IPMI library for out-of-band hardware management.
 
-See [FreeIPMI Package Documentation](./packages/freeipmi) for details.
+See [FreeIPMI Package Documentation](./packages/freeipmi.md) for details.
 
 ### openssl
 
 OpenSSL toolkit for secure communications.
 
-See [OpenSSL Package Documentation](./packages/openssl) for details.
+See [OpenSSL Package Documentation](./packages/openssl.md) for details.
 
 ## Repository Structure
 
@@ -186,10 +186,10 @@ spack install slurm_factory.slurm@25-11-0-1 \
 
 ## Next Steps
 
-- [Getting Started Guide](./getting-started) - Detailed installation instructions
-- [Package Documentation](./packages/slurm) - Explore available packages and variants
-- [Contributing Guide](./contributing) - Contribute to the repository
-- [Contact](./contact) - Get help or report issues
+- [Getting Started Guide](./getting-started.md) - Detailed installation instructions
+- [Package Documentation](./packages/slurm.md) - Explore available packages and variants
+- [Contributing Guide](./contributing.md) - Contribute to the repository
+- [Contact](./contact.md) - Get help or report issues
 
 ## Related Projects
 

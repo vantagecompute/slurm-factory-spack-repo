@@ -15,8 +15,8 @@ import os
 
 import spack.llnl.util.tty as tty
 import spack.util.executable as exe
-from spack_repo.builtin.build_systems.cmake import CMakePackage
 from spack.package import *
+from spack_repo.builtin.build_systems.cmake import CMakePackage
 
 
 class S2nTls(CMakePackage):
