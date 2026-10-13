@@ -86,6 +86,11 @@ class S2nTls(CMakePackage):
             # Building tests requires `ar` which may not be on PATH in the spack
             # build environment, causing "no such file or directory" at link time.
             "-DBUILD_TESTING=OFF",
+            # Install into lib/ on every platform. GNUInstallDirs picks lib64 on
+            # RHEL-family systems, where Slurm's configure (--with-s2n) cannot
+            # find libs2n ("unable to locate 1.5.7+ s2n library"), and the
+            # $ORIGIN rpaths below assume lib/.
+            "-DCMAKE_INSTALL_LIBDIR=lib",
             # Point CMake to spack OpenSSL for find_package / FindCrypto.cmake
             f"-DCMAKE_PREFIX_PATH={openssl_prefix}",
             f"-DOPENSSL_ROOT_DIR={openssl_prefix}",
