@@ -23,37 +23,86 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
+# This repository is public, and the vantage-eng self-hosted runner group does
+# not accept public repositories, so leave USE_SELF_HOSTED_RUNNERS unset: every
+# job then runs on ubuntu-26.04, which is free for public repositories. If the
+# variable is ever set, no cache is synced there: self-hosted runners keep their
+# caches on disk, so every cache below is on only when the runner is
+# GitHub-hosted.
 jobs:
   commitlint:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && fromJSON(vars.SELF_HOSTED_RUNS_ON || '{"group":"vantage-eng","labels":["X64"]}') || 'ubuntu-26.04' }}
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: lts/*
+          node-version: 24
+          package-manager-cache: ${{ runner.environment == 'github-hosted' }}
       - name: Install commitlint
-        run: npm install -D @commitlint/cli @commitlint/config-conventional
+        run: npm install --no-save @commitlint/cli @commitlint/config-conventional
       - name: Validate PR commits with commitlint
-        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: npx commitlint --from "${BASE_SHA}" --to "${HEAD_SHA}" --verbose
 
   ci-tests:
     name: CI-Tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && fromJSON(vars.SELF_HOSTED_RUNS_ON || '{"group":"vantage-eng","labels":["X64"]}') || 'ubuntu-26.04' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install `just`
-        run: sudo snap install just --classic
-      - name: Install `uv`
-        run: sudo snap install astral-uv --classic
-      - name: Run linters
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: ${{ runner.environment == 'github-hosted' }}
+      - name: Install just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+      - name: Run lint checks
         run: just lint
-      - name: Run Typecheck
+      - name: Run type checks
         run: just typecheck
+      - name: Run tests
+        run: just test
+
+  # A broken doc link fails the build (onBrokenLinks: 'throw'), so build the
+  # site on every PR rather than finding out from the tag-triggered deploy.
+  docs-check:
+    name: Docs build
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && fromJSON(vars.SELF_HOSTED_RUNS_ON || '{"group":"vantage-eng","labels":["X64"]}') || 'ubuntu-26.04' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # The pydoc plugin parses each package.py with `ast` and never imports it.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ${{ runner.environment == 'github-hosted' && 'yarn' || '' }}
+          cache-dependency-path: docusaurus/yarn.lock
+          package-manager-cache: ${{ runner.environment == 'github-hosted' }}
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install docs dependencies
+        working-directory: docusaurus
+        run: yarn install --frozen-lockfile
+      - name: Typecheck
+        working-directory: docusaurus
+        run: yarn typecheck
+      - name: Build
+        working-directory: docusaurus
+        env:
+          PYDOC_PYTHON: python3
+        run: yarn build
