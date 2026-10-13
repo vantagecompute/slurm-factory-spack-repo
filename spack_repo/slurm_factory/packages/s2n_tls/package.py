@@ -43,8 +43,6 @@ class S2nTls(CMakePackage):
     depends_on("c", type="build")
     depends_on("cmake@3.0:", type="build")
     depends_on("openssl", type=("build", "link", "run"))
-    # patchelf is needed to fix rpaths for relocatable deployments
-    depends_on("patchelf", type="build")
 
     @property
     def libs(self):
@@ -100,82 +98,23 @@ class S2nTls(CMakePackage):
             f"-DOPENSSL_CRYPTO_LIBRARY={openssl_crypto_lib}",
             # Don't search system paths — avoids picking up /usr/lib/libcrypto
             "-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF",
-            # Bake RPATH into libs2n.so so it finds spack libcrypto at runtime
-            f"-DCMAKE_INSTALL_RPATH={openssl_lib_dir}",
+            # Bake the RPATH into libs2n.so at link time. The $ORIGIN entries
+            # let it find libcrypto.so in a spack view or tarball, where the
+            # absolute spack paths no longer exist: libs2n.so lives in
+            # <view>/lib/ and libcrypto.so in <view>/lib64/ (OpenSSL 3.x on
+            # x86_64), <view>/lib/ or <view>/lib/private/ (spack view conflict
+            # resolution). The absolute OpenSSL dir serves the spack env.
+            #
+            # Set here rather than rewritten after install: patchelf
+            # --set-rpath on libs2n.so left load segments misaligned, which the
+            # glibc 2.28 loader on Rocky 8 refuses ("ELF load command
+            # address/offset not properly aligned"), failing Slurm's configure.
+            "-DCMAKE_INSTALL_RPATH="
+            + ";".join(["$ORIGIN", "$ORIGIN/../lib64", "$ORIGIN/../lib/private", openssl_lib_dir]),
             "-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON",
         ]
 
         return args
-
-    @run_after("install")
-    def fixup_rpaths(self):
-        """
-        Fix RPATHs on libs2n.so for relocatable deployments.
-
-        libs2n.so links to libcrypto.so and must find the spack-built OpenSSL
-        at runtime, not the system one. We add $ORIGIN-relative paths so that
-        when deployed via a spack view/tarball (where absolute spack install
-        paths no longer exist), the library resolution still works.
-        """
-        openssl_lib_dir = self._openssl_lib_dir
-
-        # Find the actual libs2n.so file (not a symlink) for patching
-        lib_dir = self.prefix.lib
-        if not os.path.isdir(str(lib_dir)):
-            lib_dir = self.prefix.lib64
-        if not os.path.isdir(str(lib_dir)):
-            tty.warn("Could not find lib directory for rpath patching")
-            return
-
-        libs2n_real = None
-        for f in sorted(os.listdir(str(lib_dir))):
-            fpath = join_path(lib_dir, f)
-            if f.startswith("libs2n.so") and not os.path.islink(fpath):
-                libs2n_real = fpath
-                break
-
-        if not libs2n_real:
-            tty.warn("libs2n.so real file not found for rpath patching")
-            return
-
-        patchelf = exe.which("patchelf")
-        if not patchelf:
-            tty.warn("patchelf not found — libs2n.so rpath may need manual fixing")
-            return
-
-        try:
-            current_rpath = patchelf("--print-rpath", libs2n_real, output=str).strip()
-            tty.msg(f"  libs2n.so current rpath: {current_rpath}")
-
-            # Build new rpath — keep existing entries, drop temporary build paths
-            new_rpath_parts = []
-            for part in current_rpath.split(":"):
-                if "s2n-tls-install" in part or "s2n-tls-build" in part:
-                    continue  # drop temporary build paths
-                if part:
-                    new_rpath_parts.append(part)
-
-            # Ensure spack OpenSSL lib dir is in RPATH (absolute, for spack env use)
-            if openssl_lib_dir not in new_rpath_parts:
-                new_rpath_parts.append(openssl_lib_dir)
-
-            # CRITICAL: Add $ORIGIN-relative paths so libs2n.so can find
-            # libcrypto.so when deployed via a spack view/tarball where the
-            # absolute spack install paths no longer exist.
-            # libs2n.so lives in <view>/lib/ and libcrypto.so lives in:
-            #   <view>/lib64/  (OpenSSL 3.x on x86_64)
-            #   <view>/lib/    (fallback / same dir)
-            #   <view>/lib/private/  (spack view conflict resolution)
-            for origin_path in ["$ORIGIN", "$ORIGIN/../lib64", "$ORIGIN/../lib/private"]:
-                if origin_path not in new_rpath_parts:
-                    new_rpath_parts.insert(0, origin_path)
-
-            new_rpath = ":".join(new_rpath_parts)
-            patchelf("--set-rpath", new_rpath, libs2n_real)
-            tty.msg(f"  libs2n.so new rpath: {new_rpath}")
-            tty.msg("✓ Fixed libs2n.so rpath for relocatable deployment")
-        except Exception as e:
-            tty.warn(f"Could not patch libs2n.so rpath: {e}")
 
     @run_after("install")
     def verify_linkage(self):

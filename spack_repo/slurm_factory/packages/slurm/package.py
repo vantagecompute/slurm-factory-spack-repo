@@ -63,8 +63,10 @@ class Slurm(AutotoolsPackage):
     # s2n-tls for internal TLS support (tls/s2n plugin) - required for slurm >= 25.x
     # Ref: https://slurm.schedmd.com/tls.html
     depends_on("s2n-tls", type=("build", "link", "run"), when="@25:")
-    # patchelf is needed to fix rpaths for tls_s2n.so plugin
-    depends_on("patchelf", type="build", when="@25:")
+    # patchelf is needed to fix rpaths for tls_s2n.so plugin. Below 0.18:
+    # patchelf 0.18.0's --set-rpath left libs2n.so with misaligned load
+    # segments that the glibc 2.28 loader on Rocky 8 refuses.
+    depends_on("patchelf@:0.17", type="build", when="@25:")
 
     # Dependencies
     depends_on("c", type="build")
