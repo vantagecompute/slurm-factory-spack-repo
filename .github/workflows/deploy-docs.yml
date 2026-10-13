@@ -1,0 +1,141 @@
+# Copyright 2025 Vantage Compute Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Deploy the Slurm Factory Spack repository docs (guides plus the package
+# reference generated from each package.py) as a spoke site under
+# /developer/slurm-factory-spack-repo/ on docs.vantagecompute.ai (S3 +
+# CloudFront). Mirrors pykustomize's deploy-docs.yml.
+#
+# Auth is handled at the edge by the Lambda@Edge Keycloak gateway on
+# all of /developer/*; no per-spoke auth config is needed.
+#
+# Required repo variables:
+#   DOCS_BUCKET               S3 bucket name (shared with vantage-docs)
+#   DOCS_CF_DISTRIBUTION_ID   CloudFront distribution ID
+#   DOCS_SPOKE_ROLE_ARN       vantage-docs-spoke-slurm-factory-spack-repo, scoped to
+#                             developer/slurm-factory-spack-repo/*. Created by the
+#                             vantage-docs hub stack from its spokes list; it trusts
+#                             only this repository's immutable OIDC subject
+#                             (repo:vantagecompute@<org id>/slurm-factory-spack-repo@<repo id>:...).
+
+name: Deploy docs (spoke)
+
+on:
+  push:
+    tags:
+      # A repository release, cut by `just release X.Y.Z`. GitHub filter
+      # patterns are glob-like: `.` is literal and `+` means one or more of
+      # the preceding character.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      # A docs-only release, cut by `just release X.Y.Z --docs-only`.
+      # release.yml deliberately does NOT list this pattern, and
+      # tests/test_release_tags.py asserts that rather than trusting this comment.
+      - 'docs-v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: docs-spoke
+  cancel-in-progress: false
+
+# This repository is public and the vantage-eng runner group does not accept
+# public repositories, so USE_SELF_HOSTED_RUNNERS stays unset and the job runs
+# on ubuntu-26.04. No cache is synced on a self-hosted runner.
+jobs:
+  deploy:
+    runs-on: ${{ vars.USE_SELF_HOSTED_RUNNERS == 'true' && fromJSON(vars.SELF_HOSTED_RUNS_ON || '{"group":"vantage-eng","labels":["X64"]}') || 'ubuntu-26.04' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # getProjectVersion() runs `git describe --tags`, which needs history.
+          fetch-depth: 0
+
+      # The pydoc plugin parses each package.py with `ast` and never imports
+      # it, so it needs an interpreter that can parse the source, not Spack.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ${{ runner.environment == 'github-hosted' && 'yarn' || '' }}
+          cache-dependency-path: docusaurus/yarn.lock
+          package-manager-cache: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install docs dependencies
+        working-directory: docusaurus
+        run: yarn install --frozen-lockfile
+
+      # `yarn install --frozen-lockfile` is lockfile-exact by design, so the
+      # caret range on @vantagecompute/docusaurus-theme alone would never pick
+      # up a newer patch. This takes the newest release matching the declared
+      # range, so a theme patch reaches every spoke on its next deploy with no
+      # lockfile commit. The lockfile change stays on the runner.
+      - name: Take the newest theme release in range
+        working-directory: docusaurus
+        run: yarn upgrade @vantagecompute/docusaurus-theme
+
+      - name: Build docs
+        working-directory: docusaurus
+        env:
+          PYDOC_PYTHON: python3
+        run: yarn build
+
+      # pydoc fails the build itself on an introspection failure; this checks
+      # that every package directory produced a page, so a package added with
+      # a typo in its path cannot ship without a reference page.
+      - name: Verify package reference is complete
+        run: |
+          missing=()
+          for dir in spack_repo/slurm_factory/packages/*/; do
+            name="$(basename "${dir}")"
+            page="docusaurus/build/package-reference/spack_repo-slurm_factory-packages-${name}-package.html"
+            [[ -f "${page}" ]] || missing+=("${name}")
+          done
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "Package reference is incomplete: ${missing[*]}"
+            exit 1
+          fi
+          echo "Package reference OK: every package has a page"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.DOCS_SPOKE_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Sync to S3
+        env:
+          DOCS_BUCKET: ${{ vars.DOCS_BUCKET }}
+        run: |
+          aws s3 sync docusaurus/build/ "s3://${DOCS_BUCKET}/developer/slurm-factory-spack-repo/" --delete
+
+      - name: Invalidate CloudFront
+        env:
+          DOCS_CF_DISTRIBUTION_ID: ${{ vars.DOCS_CF_DISTRIBUTION_ID }}
+        run: |
+          if [ -z "${DOCS_CF_DISTRIBUTION_ID}" ]; then
+            echo "DOCS_CF_DISTRIBUTION_ID is not set; skipping CloudFront invalidation."
+            exit 0
+          fi
+          aws cloudfront create-invalidation \
+            --distribution-id "${DOCS_CF_DISTRIBUTION_ID}" \
+            --paths "/developer/slurm-factory-spack-repo/*"

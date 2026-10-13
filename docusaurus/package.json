@@ -1,6 +1,6 @@
 {
-  "name": "slurm-factory-docs",
-  "version": "0.0.0",
+  "name": "slurm-factory-spack-repo-docs",
+  "version": "0.0.3",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
@@ -13,25 +13,25 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc",
-    "lint:md": "markdownlint-cli2 \"docs/**/*.md\""
+    "gen-pydoc": "node node_modules/@vantagecompute/docusaurus-plugin-pydoc/src/generate.js --project-root .. --output-dir ./docs/package-reference --modules $(cd ../spack_repo/slurm_factory/packages && ls -d */ | tr -d / | sed 's/.*/spack_repo.slurm_factory.packages.&.package/' | paste -sd, -) --label 'Package Reference'"
   },
   "dependencies": {
-    "@docusaurus/core": "^3.9.2",
-    "@docusaurus/preset-classic": "^3.9.2",
-    "@docusaurus/theme-mermaid": "^3.9.2",
+    "@docusaurus/core": "^3.10.2",
+    "@docusaurus/preset-classic": "^3.10.2",
     "@mdx-js/react": "^3.1.1",
+    "@vantagecompute/docusaurus-plugin-pydoc": "^0.1.2",
+    "@vantagecompute/docusaurus-theme": "^0.5.2",
     "clsx": "^2.1.1",
     "prism-react-renderer": "^2.4.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.9.2",
-    "@docusaurus/tsconfig": "^3.9.2",
-    "@docusaurus/types": "^3.9.2",
-    "docusaurus-plugin-llms": "^0.2.2",
-    "markdownlint-cli2": "^0.19.0",
-    "typescript": "^5.9.3"
+    "@docusaurus/module-type-aliases": "^3.10.2",
+    "@docusaurus/tsconfig": "^3.10.2",
+    "@docusaurus/types": "^3.10.2",
+    "docusaurus-plugin-llms": "^0.6.1",
+    "typescript": "^7.0.2"
   },
   "browserslist": {
     "production": [
@@ -46,6 +46,14 @@
     ]
   },
   "engines": {
-    "node": ">=18.0"
+    "node": ">=24.0"
+  },
+  "resolutions": {
+    "docusaurus-plugin-llms/minimatch": "^9.0.7",
+    "docusaurus-plugin-llms/yaml": "^2.8.3",
+    "**/sockjs/uuid": "^11.1.1",
+    "@docusaurus/core/tinypool": "^2.1.2",
+    "**/serialize-javascript": "^7.0.5",
+    "**/postcss-selector-parser": "^7.1.6"
   }
 }

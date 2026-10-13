@@ -1,57 +1,95 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
+// Copyright 2025 Vantage Compute Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import * as fs from 'fs';
 import * as path from 'path';
+import {themes as prismThemes} from 'prism-react-renderer';
+import type {Config} from '@docusaurus/types';
+import {staticDir, getProjectVersion} from '@vantagecompute/docusaurus-theme';
 
-// Function to read version from pyproject.toml
-function getVersionFromPyproject(): string {
-  try {
-    const pyprojectPath = path.join(__dirname, '../pyproject.toml');
-    const content = fs.readFileSync(pyprojectPath, 'utf8');
-    
-    // Extract version using regex
-    const versionMatch = content.match(/^version\s*=\s*["']([^"']+)["']/m);
-    
-    if (versionMatch) {
-      return versionMatch[1];
-    }
-    
-    throw new Error('Version not found in pyproject.toml');
-  } catch (error) {
-    console.error('Error reading version from pyproject.toml:', error);
-    return '0.0.0'; // fallback version
-  }
-}
+// From the theme rather than read out of pyproject.toml, so every Vantage site
+// advertises its version the same way. It returns `git describe --tags
+// --always`, so the string already carries its leading `v`. A docs-only release
+// is tagged docs-vX.Y.Z; the site shows the version, not the tag.
+const projectVersion = getProjectVersion().replace(/^docs-/, '');
 
-const projectVersion = getVersionFromPyproject();
+const projectRoot = path.join(__dirname, '..');
+
+// The package reference is generated at build time by
+// @vantagecompute/docusaurus-plugin-pydoc from the Spack package recipes. It
+// parses each package.py with `ast` and never imports it, which is the only way
+// to document a recipe: importing one needs a Spack installation
+// (`from spack.package import *`).
+//
+// The package list is read from the repository so a new package cannot be
+// forgotten. Each package is a directory holding a package.py; the module name
+// mirrors that path, and the label is the directory name.
+const packagesDir = path.join(projectRoot, 'spack_repo', 'slurm_factory', 'packages');
+
+const pydocModules = fs
+  .readdirSync(packagesDir, {withFileTypes: true})
+  .filter((entry) => entry.isDirectory() && fs.existsSync(path.join(packagesDir, entry.name, 'package.py')))
+  .map((entry) => entry.name)
+  .sort()
+  .map((name) => ({module: `spack_repo.slurm_factory.packages.${name}.package`, label: name}));
 
 const config: Config = {
   title: 'Slurm Factory Spack Repo',
-  tagline: 'Custom Spack repository for building and installing Slurm',
+  tagline: `Custom Spack repository for building and installing Slurm (${projectVersion})`,
   favicon: 'img/favicon.ico',
 
-  url: 'https://vantagecompute.github.io',
-  baseUrl: '/slurm-factory-spack-repo/',
+  // A spoke site under the docs hub. Authentication happens at the edge: the
+  // Lambda@Edge Keycloak gateway guards all of /developer/*, so this site
+  // carries no login of its own. `noIndex` because the hub is not public.
+  url: 'https://docs.vantagecompute.ai',
+  baseUrl: '/developer/slurm-factory-spack-repo/',
+  noIndex: true,
 
   organizationName: 'vantagecompute',
   projectName: 'slurm-factory-spack-repo',
-  deploymentBranch: 'gh-pages',
+  deploymentBranch: 'main',
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
-
-  markdown: {
-    format: 'mdx',
-    mermaid: false,
-    hooks: {
-      onBrokenMarkdownLinks: 'warn',
-    },
-  },
 
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
   },
+  markdown: {
+    format: 'detect',
+    hooks: {
+      onBrokenMarkdownLinks: 'throw',
+    },
+  },
+  // The theme renders the navbar and (no) footer itself: this site is a
+  // developer spoke, so it gets the developer navbar with the brand mark, the
+  // centred title and version, and these buttons. There is no
+  // themeConfig.navbar and no footer below; both belong to the theme.
+  themes: [
+    [
+      '@vantagecompute/docusaurus-theme',
+      {
+        navbarLinks: [
+          {label: 'GitHub', url: 'https://github.com/vantagecompute/slurm-factory-spack-repo'},
+          {label: 'Buildcache', url: 'https://slurm-factory-spack-binary-cache.vantagecompute.ai'},
+        ],
+      },
+    ],
+  ],
+
+  staticDirectories: ['static', staticDir],
 
   presets: [
     [
@@ -64,130 +102,88 @@ const config: Config = {
           editUrl: 'https://github.com/vantagecompute/slurm-factory-spack-repo/tree/main/docusaurus/',
         },
         blog: false,
-        theme: {
-          customCss: './src/css/custom.css',
-        },
       },
     ],
   ],
-
   plugins: [
+    [
+      '@vantagecompute/docusaurus-plugin-pydoc',
+      {
+        projectRoot,
+        modules: pydocModules,
+        outputDir: './docs/package-reference',
+        label: 'Package Reference',
+        python: process.env.PYDOC_PYTHON ?? 'python3',
+      },
+    ],
     [
       'docusaurus-plugin-llms',
       {
-        // Generate llms.txt files for AI consumption
         generateLLMsTxt: true,
         generateLLMsFullTxt: true,
         docsDir: 'docs',
-        ignoreFiles: [],
         title: 'Slurm Factory Spack Repository Documentation',
-        description: 'Custom Spack repository for building and installing Slurm with pre-built binaries and GPU support.',
+        description:
+          'Custom Spack repository for building and installing Slurm with pre-built binaries and GPU support.',
         includeBlog: false,
-        // Content cleaning options
         excludeImports: true,
         removeDuplicateHeadings: true,
-        // Generate individual markdown files following llmstxt.org specification
         generateMarkdownFiles: true,
-        // Control documentation order
         includeOrder: [],
         includeUnmatchedLast: true,
-        // Path transformation options
         pathTransformation: {
-          // Paths to ignore when constructing URLs (will be removed if found)
           ignorePaths: ['docs'],
         },
-        // Custom LLM files for specific documentation sections
         customLLMFiles: [
           {
-            filename: 'llms-index.txt',
-            includePatterns: ['docs/index.md'],
-            fullContent: true,
-            title: 'Slurm Factory Spack Repository Overview',
-            description: 'Overview and introduction to Slurm Factory Spack Repository'
-          },
-          {
             filename: 'llms-getting-started.txt',
-            includePatterns: ['docs/getting-started.md'],
+            includePatterns: ['docs/index.md', 'docs/getting-started.md'],
             fullContent: true,
-            title: 'Slurm Factory Getting Started Guide',
-            description: 'Installation and quick start guide for Slurm Factory'
+            title: 'Slurm Factory Spack Repository Getting Started',
+            description: 'Overview, installation and quick start for the Slurm Factory Spack repository',
           },
           {
             filename: 'llms-packages.txt',
             includePatterns: ['docs/packages/*.md'],
             fullContent: true,
             title: 'Slurm Factory Package Documentation',
-            description: 'Complete package reference for Slurm, curl, freeipmi, and openssl'
+            description: 'Guides for the slurm, curl, freeipmi, openssl and s2n-tls packages',
           },
           {
-            filename: 'llms-contributing.txt',
-            includePatterns: ['docs/contributing.md'],
+            filename: 'llms-package-reference.txt',
+            includePatterns: ['docs/package-reference/**/*.md'],
             fullContent: true,
-            title: 'Slurm Factory Contributing Guide',
-            description: 'Contributing guidelines for Slurm Factory Spack Repository'
+            title: 'Slurm Factory Package Reference',
+            description: 'Package recipe reference generated from the Spack package.py docstrings',
           },
           {
-            filename: 'llms-contact.txt',
-            includePatterns: ['docs/contact.md'],
+            filename: 'llms-project.txt',
+            includePatterns: ['docs/contributing.md', 'docs/releasing.md', 'docs/contact.md'],
             fullContent: true,
-            title: 'Slurm Factory Contact Information',
-            description: 'Contact and support information for Slurm Factory'
+            title: 'Slurm Factory Spack Repository Project Guide',
+            description: 'Contributing, releasing and contact information',
           },
         ],
       },
     ],
   ],
 
+  customFields: {
+    projectVersion: projectVersion,
+  },
+
   themeConfig: {
-    navbar: {
-      title: 'Slurm Factory Spack Repo',
-      logo: {
-        alt: 'Vantage Compute Logo',
-        src: 'https://vantage-compute-public-assets.s3.us-east-1.amazonaws.com/branding/vantage-logo-text-white-horz.png',
-        srcDark: 'https://vantage-compute-public-assets.s3.us-east-1.amazonaws.com/branding/vantage-logo-text-white-horz.png',
-        href: 'https://vantagecompute.github.io/slurm-factory-spack-repo/',
-      },
-      items: [
-        {
-          type: 'docSidebar',
-          sidebarId: 'docsSidebar',
-          position: 'left',
-          label: 'Docs',
-        },
-        {
-          href: 'https://github.com/vantagecompute/slurm-factory-spack-repo',
-          label: 'GitHub',
-          position: 'right',
-        },
-      ],
-    },
-    footer: {
-      style: 'dark',
-      links: [
-        {
-          title: 'Docs',
-          items: [
-            {
-              label: 'Getting Started',
-              to: '/',
-            },
-          ],
-        },
-        {
-          title: 'Community',
-          items: [
-            {
-              label: 'GitHub',
-              href: 'https://github.com/vantagecompute/slurm-factory-spack-repo',
-            },
-          ],
-        },
-      ],
-      copyright: `Copyright © ${new Date().getFullYear()} Vantage Compute. Built with Docusaurus.`,
+    codeBlock: {
+      showCopyButton: true,
     },
     prism: {
-      theme: prismThemes.github,
+      theme: prismThemes.vsLight,
       darkTheme: prismThemes.dracula,
+      additionalLanguages: ['shell-session', 'python', 'bash', 'json', 'yaml', 'docker'],
+    },
+    tableOfContents: {
+      minHeadingLevel: 2,
+      maxHeadingLevel: 5,
     },
   },
 };

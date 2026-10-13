@@ -78,5 +78,5 @@ OpenSSL is dual-licensed under the Apache License 2.0 and the OpenSSL License.
 
 ## See Also
 
-- [Slurm Package](./slurm) - Main Slurm package documentation
-- [Getting Started](../getting-started) - Installation guide
+- [Slurm Package](./slurm.md) - Main Slurm package documentation
+- [Getting Started](../getting-started.md) - Installation guide

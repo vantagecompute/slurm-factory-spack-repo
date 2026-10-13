@@ -8,6 +8,14 @@
 .docusaurus
 .cache-loader
 
+# Generated at build time by @vantagecompute/docusaurus-plugin-pydoc from the
+# docstrings in spack_repo/slurm_factory/packages/*/package.py.
+#
+# Deliberately not committed, so these pages always come from current source.
+# A committed generated page can outlive the docstring it came from, and a
+# reader cannot see that it has.
+docs/package-reference/
+
 # Misc
 .DS_Store
 .env.local

@@ -11,7 +11,7 @@
 
 Spack Repository for use with Vantage Compute Slurm Factory.
 
-[Documentation](https://vantagecompute.github.io/slurm-factory-spack-repo) | [Buildcache](https://slurm-factory-spack-binary-cache.vantagecompute.ai)
+[Documentation](https://docs.vantagecompute.ai/developer/slurm-factory-spack-repo/) | [Buildcache](https://slurm-factory-spack-binary-cache.vantagecompute.ai)
 
 </div>
 
@@ -157,9 +157,24 @@ OpenSSL toolkit for secure communications.
 
 Command-line URL transfer utility with LDAP and SSH support.
 
+## Development
+
+The repository is driven by a [justfile](justfile); `just` lists every recipe.
+
+```bash
+just check        # lint, typecheck and tests, as CI runs them
+just docs-build   # build the docs site, including the generated package reference
+just docs-dev     # docs development server
+```
+
+Releases are cut with `just release X.Y.Z` (or `--docs-only`), which opens a release
+branch for review; the tag is pushed from `main` after it merges. See
+[Releasing](docusaurus/docs/releasing.md).
+
 ## Contributing
 
 Please follow Spack's package development guidelines when contributing to this repository.
+Commits follow Conventional Commits, checked in CI against [.commitlintrc.yml](.commitlintrc.yml).
 
 ## License
 

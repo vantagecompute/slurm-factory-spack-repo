@@ -175,7 +175,7 @@ If you prefer to build from source or need a custom configuration:
 spack install slurm@25-11-0-1 +pmix +hwloc +restd +ipmi
 ```
 
-Available variants are documented in the [Slurm package documentation](./packages/slurm).
+Available variants are documented in the [Slurm package documentation](./packages/slurm.md).
 
 ## Using in spack.yaml
 
@@ -210,10 +210,10 @@ spack install --cache-only
 
 ## Next Steps
 
-- [Slurm Package Documentation](./packages/slurm) - Explore available variants and versions
-- [OpenSSL Package](./packages/openssl) - Custom OpenSSL builds
-- [FreeIPMI Package](./packages/freeipmi) - IPMI support for hardware monitoring
-- [Contributing](./contributing) - Help improve this repository
+- [Slurm Package Documentation](./packages/slurm.md) - Explore available variants and versions
+- [OpenSSL Package](./packages/openssl.md) - Custom OpenSSL builds
+- [FreeIPMI Package](./packages/freeipmi.md) - IPMI support for hardware monitoring
+- [Contributing](./contributing.md) - Help improve this repository
 
 ## Troubleshooting
 
@@ -245,4 +245,4 @@ spack buildcache keys --install --trust --force
 ## Getting Help
 
 - [GitHub Issues](https://github.com/vantagecompute/slurm-factory-spack-repo/issues) - Report bugs or request features
-- [Contact](./contact) - Get in touch with the maintainers
+- [Contact](./contact.md) - Get in touch with the maintainers

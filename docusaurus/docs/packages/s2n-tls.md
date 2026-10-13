@@ -58,9 +58,9 @@ spack install slurm_factory.s2n-tls
 
 ## Dependencies
 
-- **OpenSSL** — Cryptographic backend (`libcrypto.so`)
-- **CMake** (build only) — Build system
-- **patchelf** (build only) — RPATH fixup for relocatable deployments
+- **OpenSSL**: Cryptographic backend (`libcrypto.so`)
+- **CMake** (build only): Build system
+- **patchelf** (build only): RPATH fixup for relocatable deployments
 
 ## How It Works with Slurm
 
@@ -102,6 +102,6 @@ s2n-tls is licensed under the Apache License 2.0.
 
 ## See Also
 
-- [Slurm Package](./slurm) — Main Slurm package documentation
-- [OpenSSL Package](./openssl) — OpenSSL dependency
-- [Getting Started](../getting-started) — Installation guide
+- [Slurm Package](./slurm.md): Main Slurm package documentation
+- [OpenSSL Package](./openssl.md): OpenSSL dependency
+- [Getting Started](../getting-started.md): Installation guide

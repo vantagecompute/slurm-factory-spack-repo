@@ -344,9 +344,7 @@ Cflags: -I${{includedir}}
             s2n_lib_dir = join_path(s2n_prefix, "lib")
             if not os.path.isdir(str(s2n_lib_dir)) or not os.path.exists(join_path(s2n_lib_dir, "libs2n.so")):
                 s2n_lib_dir = join_path(s2n_prefix, "lib64")
-            ldflags.extend(
-                ["-L{0}".format(s2n_lib_dir), "-Wl,-rpath,{0}".format(s2n_lib_dir)]
-            )
+            ldflags.extend(["-L{0}".format(s2n_lib_dir), "-Wl,-rpath,{0}".format(s2n_lib_dir)])
 
         sysconfdir = spec.variants["sysconfdir"].value
         if sysconfdir != "PREFIX/etc":

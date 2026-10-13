@@ -1,41 +1,20 @@
-# Website
+# Slurm Factory Spack Repository docs
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+The documentation site, built with [Docusaurus](https://docusaurus.io/) on
+`@vantagecompute/docusaurus-theme` and published as the `slurm-factory-spack-repo` spoke
+under `/developer/slurm-factory-spack-repo/` on docs.vantagecompute.ai.
 
-## Installation
-
-```bash
-yarn
-```
-
-## Local Development
-
-```bash
-yarn start
-```
-
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
-
-## Build
+The Package Reference is generated on every build by
+`@vantagecompute/docusaurus-plugin-pydoc` from the docstrings in
+`spack_repo/slurm_factory/packages/*/package.py`. It parses the recipes and never imports
+them, so no Spack installation is needed. The generated pages are gitignored; edit the
+docstrings, not the pages.
 
 ```bash
-yarn build
+just docs-dev     # development server
+just docs-build   # production build into build/
+just docs-serve   # serve the production build
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
-
-## Deployment
-
-Using SSH:
-
-```bash
-USE_SSH=true yarn deploy
-```
-
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+`deploy-docs.yml` deploys the site on `vX.Y.Z` and `docs-vX.Y.Z` tags. See
+`docs/releasing.md`.
