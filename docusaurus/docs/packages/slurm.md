@@ -9,7 +9,7 @@ Slurm (Simple Linux Utility for Resource Management) is an open-source, fault-to
 Compared with the upstream Spack `slurm` package, this one:
 
 - Builds every integration Slurm Factory ships (accounting, slurmrestd, PMIx, HDF5, InfluxDB, JWT, hwloc, FreeIPMI, Lua, Kafka, PAM) unconditionally, instead of behind variants
-- Enables the `tls/s2n` TLS plugin on Slurm 25.11 and newer, linked against this repository's [s2n-tls](./s2n-tls.md)
+- Enables the `tls/s2n` TLS plugin, linked against this repository's [s2n-tls](./s2n-tls.md)
 - Builds and installs `libslurm_curl.so` and relinks the InfluxDB profiling plugin against it
 - Installs the `pmi2` and `nss_slurm` contribs
 - Sets `$ORIGIN`-relative RPATHs for relocatability
@@ -24,9 +24,6 @@ Versions are named after SchedMD's release tags (`X-Y-Z-1`). The package maps ea
 | `26-05-5-1` | 26.05.5 | Latest; Slurm Factory's 26.05 build |
 | `26-05-4-1` | 26.05.4 | |
 | `26-05-0-1` | 26.05.0 | |
-| `25-11-6-1` | 25.11.6 | Slurm Factory's 25.11 build |
-| `24-11-6-1` | 24.11.6 | Slurm Factory's 24.11 build |
-| `23-11-11-1` | 23.11.11 | Slurm Factory's 23.11 build |
 
 :::note
 Only the versions above are defined. The older, CVE-affected releases that upstream Spack's `slurm` package still lists are not carried here.
@@ -56,7 +53,7 @@ These are configured on every build and have no variant:
 - Lua (job submit plugins)
 - Kafka (librdkafka)
 - PAM and multiple-slurmd support
-- `tls/s2n` on Slurm 25.11 and newer
+- `tls/s2n`
 
 ## Installation Examples
 
@@ -122,7 +119,7 @@ spack install slurm_factory.slurm@26-05-5-1 +gtk
 - **Linux PAM**: PAM authentication
 - **JSON-C**, **LZ4**, **ncurses**, **readline**, **glib**, **libssh2**, **zlib**
 
-### Slurm 25.11 and Newer
+### TLS
 
 - **s2n-tls**: Backend for the `tls/s2n` plugin
 - **patchelf** `@:0.17` (build only): Fixes the RPATH of `tls_s2n.so`. Versions from 0.18 leave misaligned load segments that the glibc 2.28 loader on Rocky Linux 8 rejects.
@@ -164,7 +161,7 @@ This package is built with RPATH configuration that makes it relocatable. You ca
 The package sets:
 
 - `$ORIGIN/../lib/slurm` on Slurm's binaries, for `libslurmfull.so` and the other internal libraries
-- `$ORIGIN/..` on the `tls_s2n.so` plugin (Slurm 25.11 and newer), so it finds `libs2n.so` in `lib/` of a view or tarball
+- `$ORIGIN/..` on the `tls_s2n.so` plugin, so it finds `libs2n.so` in `lib/` of a view or tarball
 - RPATHs for curl, Lua, librdkafka, MySQL and s2n-tls library directories
 
 ## Build from Source vs. Buildcache
@@ -201,7 +198,7 @@ Slurm is licensed under GPL-2.0-or-later.
 ## See Also
 
 - [Getting Started](../getting-started.md): Installation guide
-- [s2n-tls Package](./s2n-tls.md): TLS backend for Slurm 25.11 and newer
+- [s2n-tls Package](./s2n-tls.md): TLS backend for Slurm
 - [OpenSSL Package](./openssl.md): Custom OpenSSL for dependencies
 - [FreeIPMI Package](./freeipmi.md): IPMI support
 - [Pyxis Package](./pyxis.md): Container support through Enroot

@@ -21,10 +21,11 @@ class Freeipmi(AutotoolsPackage, GNUMirrorPackage):
     """
 
     homepage = "https://mirrors.kernel.org/gnu/freeipmi/"
-    gnu_mirror_path = "freeipmi/freeipmi-1.6.16.tar.gz"
+    gnu_mirror_path = "freeipmi/freeipmi-1.6.20.tar.gz"
 
     license("GPL-3.0-or-later")
 
+    version("1.6.20", sha256="9cc644530ee629ffb94d6fd209e7cb4a8b8ae6677f89d2dc461efed9b2e709f2")
     version("1.6.16", sha256="5bcef6bb9eb680e49b4a3623579930ace7899f53925b2045fe9f91ad6904111d")
 
     depends_on("c", type="build")

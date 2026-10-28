@@ -29,6 +29,7 @@ const sidebars: SidebarsConfig = {
         'packages/openssl',
         'packages/s2n-tls',
         'packages/pyxis',
+        'packages/cuda',
       ],
     },
     {

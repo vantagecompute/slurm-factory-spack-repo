@@ -38,16 +38,13 @@ class Slurm(AutotoolsPackage):
     """
 
     homepage = "https://slurm.schedmd.com"
-    url = "https://download.schedmd.com/slurm/slurm-21.08.8.tar.bz2"
+    url = "https://download.schedmd.com/slurm/slurm-26.05.5.tar.bz2"
 
     license("GPL-2.0-or-later")
 
     version("26-05-5-1", sha256="4680cafc82b0689865c885eb703441e7ebf764896c40fd03a50f2fcb60664f68")
     version("26-05-4-1", sha256="035f4b193d4de979ba5381beca206a50b6b886b2793b06f68a1ce7e67022b06a")
     version("26-05-0-1", sha256="767f0f7f9bc0fb61bb3f67e27882ec190d1ba5a9b2814b7177388e5793c0dae6")
-    version("25-11-6-1", sha256="6695aee51a36799917a4db4b1d787610af926b27b17c2e4246bf14c0fd029664")
-    version("24-11-6-1", sha256="0614760306dfbd67eb76a31ed7a49e853fe3cdb48ca28ccdbe699c2e0db05a16")
-    version("23-11-11-1", sha256="4a1713dceb5bfad74d3f43c9bfedf23603933f0d7148cdad7feedea57da4e45d")
 
     variant(
         "sysconfdir",
@@ -61,13 +58,13 @@ class Slurm(AutotoolsPackage):
 
     # TODO: add support for checkpoint/restart (BLCR)
 
-    # s2n-tls for internal TLS support (tls/s2n plugin) - required for slurm >= 25.x
+    # s2n-tls for internal TLS support (tls/s2n plugin)
     # Ref: https://slurm.schedmd.com/tls.html
-    depends_on("s2n-tls", type=("build", "link", "run"), when="@25:")
+    depends_on("s2n-tls", type=("build", "link", "run"))
     # patchelf is needed to fix rpaths for tls_s2n.so plugin. Below 0.18:
     # patchelf 0.18.0's --set-rpath left libs2n.so with misaligned load
     # segments that the glibc 2.28 loader on Rocky 8 refuses.
-    depends_on("patchelf@:0.17", type="build", when="@25:")
+    depends_on("patchelf@:0.17", type="build")
 
     # Dependencies
     depends_on("c", type="build")
@@ -146,13 +143,7 @@ class Slurm(AutotoolsPackage):
         return f"https://download.schedmd.com/slurm/slurm-{release_version}.tar.bz2"
 
     def flag_handler(self, name, flags):
-        wrapper_flags = None
-
-        if name == "cflags":
-            if self.spec.satisfies("@:20-02-1 %gcc@10:"):
-                wrapper_flags = ["-fcommon"]
-
-        return (wrapper_flags, None, flags)
+        return (None, None, flags)
 
     def setup_build_environment(self, env):
         """Set up build environment including creating missing libcurl.pc file."""
@@ -338,17 +329,16 @@ Cflags: -I${{includedir}}
         if spec.satisfies("+rsmi"):
             args.append(f"--with-rsmi={spec['rocm-smi-lib'].prefix}")
 
-        # s2n-tls for internal TLS support (tls/s2n plugin) - enabled for slurm >= 25.x
+        # s2n-tls for internal TLS support (tls/s2n plugin)
         # Ref: https://slurm.schedmd.com/tls.html
-        if spec.satisfies("@25:"):
-            s2n_prefix = spec["s2n-tls"].prefix
-            args.append("--with-s2n={0}".format(s2n_prefix))
-            cppflags.append("-I{0}/include".format(s2n_prefix))
-            # Detect s2n lib dir (lib vs lib64)
-            s2n_lib_dir = join_path(s2n_prefix, "lib")
-            if not os.path.isdir(str(s2n_lib_dir)) or not os.path.exists(join_path(s2n_lib_dir, "libs2n.so")):
-                s2n_lib_dir = join_path(s2n_prefix, "lib64")
-            ldflags.extend(["-L{0}".format(s2n_lib_dir), "-Wl,-rpath,{0}".format(s2n_lib_dir)])
+        s2n_prefix = spec["s2n-tls"].prefix
+        args.append("--with-s2n={0}".format(s2n_prefix))
+        cppflags.append("-I{0}/include".format(s2n_prefix))
+        # Detect s2n lib dir (lib vs lib64)
+        s2n_lib_dir = join_path(s2n_prefix, "lib")
+        if not os.path.isdir(str(s2n_lib_dir)) or not os.path.exists(join_path(s2n_lib_dir, "libs2n.so")):
+            s2n_lib_dir = join_path(s2n_prefix, "lib64")
+        ldflags.extend(["-L{0}".format(s2n_lib_dir), "-Wl,-rpath,{0}".format(s2n_lib_dir)])
 
         sysconfdir = spec.variants["sysconfdir"].value
         if sysconfdir != "PREFIX/etc":
@@ -403,10 +393,6 @@ Cflags: -I${{includedir}}
         s2n-tls package) and libcrypto.so (in the openssl package). We add
         $ORIGIN-relative paths so it works in spack views and tarballs.
         """
-        spec = self.spec
-        if not spec.satisfies("@25:"):
-            return
-
         tls_s2n_plugin = join_path(self.prefix.lib, "slurm", "tls_s2n.so")
         if not os.path.exists(tls_s2n_plugin):
             tty.warn(f"tls_s2n.so not found at {tls_s2n_plugin}")
