@@ -192,7 +192,7 @@ spack install slurm_factory.slurm@version ~variant1
 1. Maintainers will review your pull request
 2. Address any feedback or requested changes
 3. Once approved, a maintainer will merge your PR
-4. Your changes reach Slurm Factory as soon as they merge, because it tracks the `main` branch of this repository; they are also included in the next [release](./releasing.md)
+4. Your changes reach Slurm Factory once they are in a [release](./releasing.md): Slurm Factory pins this repository to a release tag (`SLURM_FACTORY_SPACK_REPO_TAG` in its `slurm_factory/constants.py`), so a merge to `main` alone does not change its builds
 
 ## Reporting Issues
 
