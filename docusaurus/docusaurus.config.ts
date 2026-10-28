@@ -14,9 +14,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
-import {staticDir, getProjectVersion} from '@vantagecompute/docusaurus-theme';
+import {staticDir, getProjectVersion, vantagePrism} from '@vantagecompute/docusaurus-theme';
 
 // From the theme rather than read out of pyproject.toml, so every Vantage site
 // advertises its version the same way. It returns `git describe --tags
@@ -56,12 +55,13 @@ const config: Config = {
   baseUrl: '/developer/slurm-factory-spack-repo/',
   noIndex: true,
 
-  organizationName: 'vantagecompute',
-  projectName: 'slurm-factory-spack-repo',
-  deploymentBranch: 'main',
+  // Published only to the vantage-docs hub, by deploy-docs.yml (S3 + CloudFront). No
+  // organizationName/projectName: those configure `docusaurus deploy`, which pushes to GitHub
+  // Pages, and this site never goes there.
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
+  onBrokenAnchors: 'throw',
 
   i18n: {
     defaultLocale: 'en',
@@ -69,6 +69,7 @@ const config: Config = {
   },
   markdown: {
     format: 'detect',
+    mermaid: true,
     hooks: {
       onBrokenMarkdownLinks: 'throw',
     },
@@ -77,7 +78,10 @@ const config: Config = {
   // developer spoke, so it gets the developer navbar with the brand mark, the
   // centred title and version, and these buttons. There is no
   // themeConfig.navbar and no footer below; both belong to the theme.
+  // The Vantage theme comes after theme-mermaid so its Mermaid override (the Vantage
+  // palette and type) takes effect.
   themes: [
+    '@docusaurus/theme-mermaid',
     [
       '@vantagecompute/docusaurus-theme',
       {
@@ -89,7 +93,7 @@ const config: Config = {
     ],
   ],
 
-  staticDirectories: ['static', staticDir],
+  staticDirectories: [staticDir],
 
   presets: [
     [
@@ -176,10 +180,11 @@ const config: Config = {
     codeBlock: {
       showCopyButton: true,
     },
+    // The Vantage light and dark code themes and the grammars every Vantage site needs,
+    // plus Dockerfile highlighting for the build pages.
     prism: {
-      theme: prismThemes.vsLight,
-      darkTheme: prismThemes.dracula,
-      additionalLanguages: ['shell-session', 'python', 'bash', 'json', 'yaml', 'docker'],
+      ...vantagePrism,
+      additionalLanguages: [...vantagePrism.additionalLanguages, 'docker'],
     },
     tableOfContents: {
       minHeadingLevel: 2,

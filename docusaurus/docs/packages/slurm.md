@@ -1,79 +1,62 @@
 # Slurm Package
 
-The Slurm package in this repository provides an enhanced version of the [Slurm Workload Manager](https://slurm.schedmd.com) with additional build variants, production-ready patches, and optimized dependency management.
+The Slurm package in this repository provides an enhanced build of the [Slurm Workload Manager](https://slurm.schedmd.com) with a fixed, production-oriented feature set, relocatable RPATHs and managed dependencies.
 
 ## Overview
 
 Slurm (Simple Linux Utility for Resource Management) is an open-source, fault-tolerant, and highly scalable cluster management and job scheduling system for Linux clusters.
 
-This custom package extends the standard Spack Slurm package with:
+Compared with the upstream Spack `slurm` package, this one:
 
-- Additional build variants for modern features
-- Production-tested patches
-- Optimized RPATH configuration for relocatability
-- Enhanced dependency management
-- Pre-built binaries in the public buildcache
+- Builds every integration Slurm Factory ships (accounting, slurmrestd, PMIx, HDF5, InfluxDB, JWT, hwloc, FreeIPMI, Lua, Kafka, PAM) unconditionally, instead of behind variants
+- Enables the `tls/s2n` TLS plugin on Slurm 25.11 and newer, linked against this repository's [s2n-tls](./s2n-tls.md)
+- Builds and installs `libslurm_curl.so` and relinks the InfluxDB profiling plugin against it
+- Installs the `pmi2` and `nss_slurm` contribs
+- Sets `$ORIGIN`-relative RPATHs for relocatability
+- Has pre-built binaries in the public buildcache
 
 ## Available Versions
 
-| Version | Release Date | Status |
-|---------|--------------|--------|
-| 25-11-0-1 | 2025-11 | Latest |
-| 24-11-6-1 | 2024-11 | Stable |
-| 23-11-11-1 | 2023-11 | Stable |
+Versions are named after SchedMD's release tags (`X-Y-Z-1`). The package maps each one to the release tarball on `download.schedmd.com`, so `26-05-5-1` builds `slurm-26.05.5.tar.bz2`.
 
-Older versions may be deprecated due to security vulnerabilities (CVE-2022-29500, CVE-2022-29501, CVE-2022-29502, CVE-2021-31215).
+| Version | Slurm release | Status |
+|---------|---------------|--------|
+| `26-05-5-1` | 26.05.5 | Latest; Slurm Factory's 26.05 build |
+| `26-05-4-1` | 26.05.4 | |
+| `26-05-0-1` | 26.05.0 | |
+| `25-11-6-1` | 25.11.6 | Slurm Factory's 25.11 build |
+| `24-11-6-1` | 24.11.6 | Slurm Factory's 24.11 build |
+| `23-11-11-1` | 23.11.11 | Slurm Factory's 23.11 build |
+
+:::note
+Only the versions above are defined. The older, CVE-affected releases that upstream Spack's `slurm` package still lists are not carried here.
+:::
 
 ## Build Variants
-
-The Slurm package supports numerous build variants to customize your installation:
-
-### Core Features
 
 | Variant | Default | Description |
 |---------|---------|-------------|
 | `sysconfdir` | `PREFIX/etc` | System configuration directory (e.g., `/etc/slurm`) |
-| `readline` | `true` | Enable readline support for interactive commands |
+| `gtk` | `false` | Enable GTK+ support (`sview`) |
+| `nvml` | `false` | Enable NVIDIA GPU autodetection via NVML (adds a `cuda` dependency) |
+| `rsmi` | `false` | Enable AMD GPU support via ROCm SMI (adds a `rocm-smi-lib` dependency) |
 
-### Scheduler & Plugins
+### Always-On Features
 
-| Variant | Default | Description |
-|---------|---------|-------------|
-| `pmix` | `false` | Enable PMIx support for MPI integration |
-| `lua` | `false` | Enable Lua scripting support for job submit plugins |
-| `kafka` | `false` | Enable Kafka profiling plugin for job accounting |
-| `mcs` | `false` | Enable MCS support for Kubernetes integration |
+These are configured on every build and have no variant:
 
-### Monitoring & Hardware
-
-| Variant | Default | Description |
-|---------|---------|-------------|
-| `hwloc` | `false` | Enable hwloc for hardware topology detection |
-| `nvml` | `false` | Enable NVIDIA GPU support via NVML |
-| `rsmi` | `false` | Enable AMD GPU support via ROCm SMI |
-| `ipmi` | `false` | Enable IPMI support for hardware monitoring via FreeIPMI |
-| `cgroup` | `false` | Enable cgroup plugin for resource isolation |
-
-### Database & APIs
-
-| Variant | Default | Description |
-|---------|---------|-------------|
-| `mariadb` | `false` | Use MariaDB instead of MySQL for accounting database |
-| `hdf5` | `false` | Enable HDF5 support for profiling data |
-| `restd` | `false` | Enable slurmrestd REST API server |
-
-### Security & Authentication
-
-| Variant | Default | Description |
-|---------|---------|-------------|
-| `pam` | `false` | Enable PAM support for authentication |
-| `certs` | `false` | Enable certificate generation (Slurm >= 24.11) |
-
-### UI
-
-| Variant | Default | Description |
-|---------|---------|-------------|
-| `gtk` | `false` | Enable GTK+ support for GUI tools |
+- slurmrestd (`--enable-slurmrestd`, with http-parser)
+- Accounting storage through the MySQL client library
+- PMIx (`pmix@:5`)
+- HDF5 job profiling
+- InfluxDB job profiling through `libslurm_curl.so`
+- JWT authentication (libjwt)
+- hwloc topology
+- FreeIPMI (for `acct_gather_energy/ipmi`)
+- Lua (job submit plugins)
+- Kafka (librdkafka)
+- PAM and multiple-slurmd support
+- `tls/s2n` on Slurm 25.11 and newer
 
 ## Installation Examples
 
@@ -82,21 +65,15 @@ The Slurm package supports numerous build variants to customize your installatio
 Install the latest Slurm with default options:
 
 ```bash
-spack install slurm@25-11-0-1
+spack install slurm_factory.slurm@26-05-5-1
 ```
 
 ### Production Configuration
 
-Install with common production features:
+Install with the configuration directory most deployments use:
 
 ```bash
-spack install slurm@25-11-0-1 \\
-  +pmix \\           # MPI integration
-  +hwloc \\          # Hardware topology
-  +restd \\          # REST API
-  +pam \\            # PAM authentication
-  +cgroup \\         # Resource isolation
-  sysconfdir=/etc/slurm
+spack install slurm_factory.slurm@26-05-5-1 sysconfdir=/etc/slurm
 ```
 
 ### GPU Cluster
@@ -104,88 +81,67 @@ spack install slurm@25-11-0-1 \\
 For NVIDIA GPU clusters:
 
 ```bash
-spack install slurm@25-11-0-1 +nvml +hwloc +pmix
+spack install slurm_factory.slurm@26-05-5-1 +nvml sysconfdir=/etc/slurm
 ```
 
 For AMD GPU clusters:
 
 ```bash
-spack install slurm@25-11-0-1 +rsmi +hwloc +pmix
+spack install slurm_factory.slurm@26-05-5-1 +rsmi sysconfdir=/etc/slurm
 ```
 
-### Kubernetes Integration
-
-For Kubernetes-integrated clusters:
+This is the spec Slurm Factory builds and publishes to the buildcache:
 
 ```bash
-spack install slurm@25-11-0-1 +mcs +restd +hwloc
+spack install slurm_factory.slurm@26-05-5-1 +nvml +rsmi sysconfdir=/etc/slurm
 ```
 
-### Advanced Monitoring
-
-With IPMI hardware monitoring and Kafka profiling:
+### With GUI Tools
 
 ```bash
-spack install slurm@25-11-0-1 \\
-  +ipmi \\           # Hardware monitoring via IPMI
-  +kafka \\          # Job profiling to Kafka
-  +hwloc \\          # Hardware topology
-  +hdf5              # HDF5 profiling data
-```
-
-### Development/Testing
-
-Minimal installation for development:
-
-```bash
-spack install slurm@25-11-0-1 +readline +hwloc
+spack install slurm_factory.slurm@26-05-5-1 +gtk
 ```
 
 ## Dependencies
 
-### Required Dependencies
+### Always Included
 
-Always included:
+- **curl** (`libs=shared,static +nghttp2 +libssh2 +ldap`): Without LDAP, Slurm's configure does not set `WITH_CURL` and the InfluxDB plugin fails to link
+- **MySQL** (`mysql@8.0.35 +client_only`): Client library for job accounting
+- **OpenSSL**: Cryptography and secure communications
+- **Munge**: Authentication service
+- **PMIx** (`pmix@:5`): Process management interface
+- **hwloc**: Hardware locality and topology
+- **HDF5**: Profiling data
+- **libjwt**: JWT authentication tokens
+- **FreeIPMI**: IPMI hardware monitoring
+- **Lua**: Scripting support
+- **librdkafka**: Kafka client library
+- **http-parser** and **libyaml**: slurmrestd
+- **D-Bus**: Cgroup plugin
+- **Linux PAM**: PAM authentication
+- **JSON-C**, **LZ4**, **ncurses**, **readline**, **glib**, **libssh2**, **zlib**
 
-- **curl** (with LDAP support) - Required for InfluxDB plugin
-- **MySQL** - Database for job accounting
-- **OpenSSL** - Cryptography and secure communications
-- **Munge** - Authentication service
-- **JSON-C** - JSON parsing
-- **LZ4** - Compression
-- **ncurses** - Terminal handling
-- **glib** - Core libraries
-- **libssh2** - SSH protocol support
-- **libjwt** - JWT authentication tokens
-- **zlib** - Compression
+### Slurm 25.11 and Newer
 
-### Optional Dependencies
+- **s2n-tls**: Backend for the `tls/s2n` plugin
+- **patchelf** `@:0.17` (build only): Fixes the RPATH of `tls_s2n.so`. Versions from 0.18 leave misaligned load segments that the glibc 2.28 loader on Rocky Linux 8 rejects.
 
-Enabled by variants:
+### Variant Dependencies
 
-- **PMIx** (`+pmix`) - Process management interface
-- **hwloc** (`+hwloc`) - Hardware locality/topology
-- **Lua** (`+lua`) - Scripting support
-- **librdkafka** (`+kafka`) - Kafka client library
-- **FreeIPMI** (`+ipmi`) - IPMI hardware monitoring
-- **CUDA** (`+nvml`) - NVIDIA GPU support
-- **ROCm SMI** (`+rsmi`) - AMD GPU support
-- **D-Bus** (`+cgroup`) - Cgroup plugin
-- **Linux PAM** (`+pam`) - Authentication
-- **HDF5** (`+hdf5`) - Hierarchical data format
-- **http-parser** (`+restd`) - HTTP parsing for REST API
-- **libyaml** (`+restd`) - YAML parsing for REST API
-- **GTK+** (`+gtk`) - GUI toolkit
+- **CUDA** (`+nvml`): NVIDIA GPU support
+- **ROCm SMI** (`+rsmi`): AMD GPU support
+- **GTK+** (`+gtk`): GUI toolkit
 
 ## Configuration Files
 
 After installation, Slurm requires configuration files in the `sysconfdir` directory:
 
-- `slurm.conf` - Main configuration file
-- `slurmdbd.conf` - Database daemon configuration
-- `cgroup.conf` - Cgroup plugin configuration (if `+cgroup`)
-- `topology.conf` - Network topology (optional)
-- `gres.conf` - Generic resource configuration (for GPUs, etc.)
+- `slurm.conf`: Main configuration file
+- `slurmdbd.conf`: Database daemon configuration
+- `cgroup.conf`: Cgroup plugin configuration
+- `topology.conf`: Network topology (optional)
+- `gres.conf`: Generic resource configuration (for GPUs, etc.)
 
 Example `slurm.conf` location:
 
@@ -199,63 +155,54 @@ $(spack location -i slurm)/etc/slurm.conf
 
 ## Relocatability
 
-This package is built with proper RPATH configuration, making it relocatable. You can:
+This package is built with RPATH configuration that makes it relocatable. You can:
 
 - Install to a temporary location and move it later
 - Create tarballs for deployment on other systems
 - Use with container images
 
-The package includes RPATH entries for:
+The package sets:
 
-- `$ORIGIN/../lib/slurm` - Internal Slurm libraries
-- Dependency library paths
+- `$ORIGIN/../lib/slurm` on Slurm's binaries, for `libslurmfull.so` and the other internal libraries
+- `$ORIGIN/..` on the `tls_s2n.so` plugin (Slurm 25.11 and newer), so it finds `libs2n.so` in `lib/` of a view or tarball
+- RPATHs for curl, Lua, librdkafka, MySQL and s2n-tls library directories
 
 ## Build from Source vs. Buildcache
 
 ### From Buildcache (Recommended)
 
-Fast installation from pre-built binaries:
+Fast installation from pre-built binaries. The cached builds are `+nvml +rsmi sysconfdir=/etc/slurm`, built with the toolchain's GCC (13.3.0 on Ubuntu 24.04):
 
 ```bash
-spack install --cache-only slurm@25-11-0-1
+spack install --cache-only \
+  slurm_factory.slurm@26-05-5-1 +nvml +rsmi sysconfdir=/etc/slurm %gcc@13.3.0
 ```
+
+See [Getting Started](../getting-started.md) for adding the mirror.
 
 ### From Source
 
-Build with custom variants (takes several hours):
+Build with your own variants (this can take several hours with all dependencies):
 
 ```bash
-spack install slurm@25-11-0-1 +pmix +hwloc +restd +ipmi
+spack install slurm_factory.slurm@26-05-5-1 +nvml sysconfdir=/etc/slurm
 ```
 
 ## Package Source
 
 - **Homepage**: [https://slurm.schedmd.com](https://slurm.schedmd.com)
-- **Source**: [https://github.com/SchedMD/slurm](https://github.com/SchedMD/slurm)
+- **Source**: Release tarballs from [download.schedmd.com](https://download.schedmd.com/slurm/) ([SchedMD/slurm](https://github.com/SchedMD/slurm) on GitHub)
 - **Package Definition**: [`packages/slurm/package.py`](https://github.com/vantagecompute/slurm-factory-spack-repo/blob/main/spack_repo/slurm_factory/packages/slurm/package.py)
 
 ## License
 
 Slurm is licensed under GPL-2.0-or-later.
 
-## Known Issues
-
-### CVE Deprecations
-
-Versions prior to the following are deprecated due to security vulnerabilities:
-
-- **&lt; 20.11.9** or **&lt; 21.08.8**: CVE-2022-29500, CVE-2022-29501, CVE-2022-29502
-- **&lt; 20.02.7** or **&lt; 20.11.7**: CVE-2021-31215
-
-Always use the latest patch release for your version series.
-
-### Compiler Compatibility
-
-GCC 10+ requires the `-fcommon` flag for Slurm versions &lt;= 20.02.1. This is automatically handled by the package.
-
 ## See Also
 
-- [Getting Started](../getting-started.md) - Installation guide
-- [OpenSSL Package](./openssl.md) - Custom OpenSSL for dependencies
-- [FreeIPMI Package](./freeipmi.md) - IPMI support
-- [Slurm Documentation](https://slurm.schedmd.com/documentation.html) - Official Slurm docs
+- [Getting Started](../getting-started.md): Installation guide
+- [s2n-tls Package](./s2n-tls.md): TLS backend for Slurm 25.11 and newer
+- [OpenSSL Package](./openssl.md): Custom OpenSSL for dependencies
+- [FreeIPMI Package](./freeipmi.md): IPMI support
+- [Pyxis Package](./pyxis.md): Container support through Enroot
+- [Slurm Documentation](https://slurm.schedmd.com/documentation.html): Official Slurm docs

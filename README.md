@@ -17,12 +17,14 @@ Spack Repository for use with Vantage Compute Slurm Factory.
 
 ## Overview
 
-This repository provides custom Spack packages for use with Vantage Compute's Slurm-Factory. The custom packes included in this repo include:
+This repository provides custom Spack packages, in the `slurm_factory` namespace, for use with Vantage Compute's [Slurm Factory](https://github.com/vantagecompute/slurm-factory). The packages included in this repo are:
 
-- **slurm**: Enhanced Slurm workload manager with custom patches and optimizations
+- **slurm**: Enhanced Slurm workload manager with a fixed production feature set and relocatable RPATHs
+- **curl**: Command-line tool for transferring data with URLs, with the LDAP support Slurm's InfluxDB plugin needs
 - **freeipmi**: IPMI library for hardware management
 - **openssl**: OpenSSL cryptographic library
-- **curl**: Command-line tool for transferring data with URLs
+- **s2n-tls**: AWS's TLS library, for Slurm's `tls/s2n` plugin on Slurm 25.11 and newer
+- **pyxis**: NVIDIA's SPANK plugin for running Enroot containers through `srun`
 
 ## Installation
 
@@ -32,15 +34,17 @@ Add this repository to your Spack configuration in one of two ways:
 
 #### Option 1: Using spack.yaml
 
-Add to your `spack.yaml` or `spack/spack.yaml`:
+Add to your `spack.yaml` or `spack/spack.yaml` (Spack 1.0 or later). This is the configuration Slurm Factory itself uses:
 
 ```yaml
 spack:
   repos:
-  - https://github.com/vantagecompute/slurm-factory-spack-repo.git
-  
+    slurm_factory:
+      git: https://github.com/vantagecompute/slurm-factory-spack-repo.git
+      branch: main
+
   specs:
-  - slurm@25-11-0-1 sysconfdir=/etc/slurm %gcc@13.4.0
+  - slurm_factory.slurm@26-05-5-1 sysconfdir=/etc/slurm
 ```
 
 #### Option 2: Using spack repo add
@@ -65,6 +69,8 @@ spack install slurm_factory.slurm +gtk +nvml +rsmi sysconfdir=/etc/slurm
 spack install slurm_factory.freeipmi
 spack install slurm_factory.openssl
 spack install slurm_factory.curl +ldap +libssh2 +nghttp2
+spack install slurm_factory.s2n-tls
+spack install slurm_factory.pyxis
 ```
 
 ### Slurm Variants
@@ -76,6 +82,8 @@ The Slurm package supports the following variants:
 - `nvml`: Enable NVIDIA NVML GPU detection (default: `False`)
 - `rsmi`: Enable AMD ROCm SMI GPU support (default: `False`)
 
+Accounting, slurmrestd, PMIx, HDF5, InfluxDB, JWT, hwloc, FreeIPMI, Lua and Kafka support are always built in and have no variant.
+
 ### Example Configuration
 
 Here's a complete example for installing Slurm with production features:
@@ -83,11 +91,13 @@ Here's a complete example for installing Slurm with production features:
 ```yaml
 spack:
   repos:
-  - https://github.com/vantagecompute/slurm-factory-spack-repo.git
-  
+    slurm_factory:
+      git: https://github.com/vantagecompute/slurm-factory-spack-repo.git
+      branch: main
+
   specs:
-  - slurm_factory.slurm@23-11-11-1 sysconfdir=/etc/slurm %gcc@13.4.0
-  
+  - slurm_factory.slurm@23-11-11-1 sysconfdir=/etc/slurm
+
   concretizer:
     unify: true
 ```
@@ -97,42 +107,70 @@ For GPU clusters with NVIDIA hardware:
 ```yaml
 spack:
   repos:
-  - https://github.com/vantagecompute/slurm-factory-spack-repo.git
-  
+    slurm_factory:
+      git: https://github.com/vantagecompute/slurm-factory-spack-repo.git
+      branch: main
+
   specs:
-  - slurm_factory.slurm@24-11-6-1 +nvml sysconfdir=/etc/slurm %gcc@13.4.0
-  
+  - slurm_factory.slurm@26-05-5-1 +nvml sysconfdir=/etc/slurm
+
   concretizer:
     unify: true
 ```
+
+### Installing from the Buildcache
+
+Pre-built, GPG-signed binaries are published per OS toolchain at
+`https://slurm-factory-spack-binary-cache.vantagecompute.ai/<toolchain>/spack`, where the
+toolchain is one of `resolute`, `noble`, `jammy`, `rockylinux10`, `rockylinux9` or `rockylinux8`:
+
+```bash
+spack mirror add slurm-factory \
+  https://slurm-factory-spack-binary-cache.vantagecompute.ai/noble/spack
+spack buildcache keys --install --trust
+spack buildcache list --long --variants slurm
+spack install --cache-only /<hash>
+```
+
+The published Slurm builds are `+nvml +rsmi sysconfdir=/etc/slurm`. See the
+[Getting Started guide](https://docs.vantagecompute.ai/developer/slurm-factory-spack-repo/getting-started)
+for details.
 
 ## Repository Structure
 
 ```text
 ├── README.md
+├── justfile                    # Development and release recipes
 ├── spack-repo-index.yaml       # Repository index configuration
 ├── pyproject.toml              # Python project metadata
+├── docusaurus/                 # Documentation site
+├── tests/                      # Repository tests
 └── spack_repo
     └── slurm_factory           # Main repository namespace
         ├── repo.yaml           # Repository metadata
         └── packages
             ├── slurm/          # Slurm workload manager
+            ├── curl/           # URL transfer tool
             ├── freeipmi/       # IPMI hardware management
             ├── openssl/        # OpenSSL cryptographic library
-            └── curl/           # URL transfer tool
+            ├── s2n_tls/        # s2n-tls TLS library
+            └── pyxis/          # Pyxis SPANK plugin
 ```
 
 ## Available Packages
 
 ### slurm
 
-Enhanced Slurm workload manager with custom patches and optimizations.
+Enhanced Slurm workload manager with a fixed production feature set and relocatable RPATHs.
 
-**Available versions:**
+**Available versions** (SchedMD tag style; `26-05-5-1` builds `slurm-26.05.5.tar.bz2`):
 
-- `25-11-0-1` - Slurm 25.11.0-1
-- `24-11-6-1` - Slurm 24.11.6-1
-- `23-11-11-1` - Slurm 23.11.11-1
+- `26-05-5-1`: Slurm 26.05.5 (latest)
+- `26-05-4-1`: Slurm 26.05.4
+- `26-05-0-1`: Slurm 26.05.0
+- `25-11-6-1`: Slurm 25.11.6
+- `24-11-6-1`: Slurm 24.11.6
+- `23-11-11-1`: Slurm 23.11.11
 
 **Key features:**
 
@@ -143,6 +181,8 @@ Enhanced Slurm workload manager with custom patches and optimizations.
 - JWT authentication
 - REST API daemon (slurmrestd)
 - Hardware locality (hwloc) support
+- FreeIPMI energy accounting, Lua and Kafka support
+- TLS through s2n-tls on Slurm 25.11 and newer
 - GPU support (NVIDIA NVML and AMD ROCm SMI)
 
 ### freeipmi
@@ -156,6 +196,16 @@ OpenSSL toolkit for secure communications.
 ### curl
 
 Command-line URL transfer utility with LDAP and SSH support.
+
+### s2n-tls
+
+AWS's C99 TLS implementation, linked against this repository's OpenSSL, with `$ORIGIN`
+RPATHs for relocatable deployments.
+
+### pyxis
+
+NVIDIA's SPANK plugin for running containerized tasks with Enroot, built against
+`slurm_factory.slurm`.
 
 ## Development
 

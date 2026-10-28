@@ -28,6 +28,7 @@ const sidebars: SidebarsConfig = {
         'packages/freeipmi',
         'packages/openssl',
         'packages/s2n-tls',
+        'packages/pyxis',
       ],
     },
     {
