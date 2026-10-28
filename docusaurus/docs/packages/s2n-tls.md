@@ -31,7 +31,8 @@ This package ensures `libs2n.so` always resolves to the correct spack-built `lib
 
 | Version | Status |
 |---------|--------|
-| `1.7.4` | Only version |
+| `1.7.13` | Latest (default) |
+| `1.7.4` | Previous |
 
 ## Installation
 

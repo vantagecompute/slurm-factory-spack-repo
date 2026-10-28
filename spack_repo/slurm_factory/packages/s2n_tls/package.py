@@ -31,17 +31,18 @@ class S2nTls(CMakePackage):
     """
 
     homepage = "https://github.com/aws/s2n-tls"
-    url = "https://github.com/aws/s2n-tls/archive/refs/tags/v1.7.4.tar.gz"
+    url = "https://github.com/aws/s2n-tls/archive/refs/tags/v1.7.13.tar.gz"
     git = "https://github.com/aws/s2n-tls.git"
 
     license("Apache-2.0")
 
+    version("1.7.13", sha256="bf60fe631eebb79ed9a0b9b553460a4017dd2547269292ce3e9e2ac61c97dea2")
     version("1.7.4", sha256="d2fbf45c0e039bdb6f253a392fc8bbdd258bfe0bd586f3516a2c97bb138b8e17")
 
     variant("shared", default=True, description="Build shared libraries")
 
     depends_on("c", type="build")
-    depends_on("cmake@3.0:", type="build")
+    depends_on("cmake@3.10:", type="build")
     depends_on("openssl", type=("build", "link", "run"))
 
     @property
