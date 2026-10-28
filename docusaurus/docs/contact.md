@@ -21,14 +21,14 @@ When reporting issues, please include:
 
 Example issue template:
 
-```markdown
+````markdown
 **Description**
 Brief description of the issue
 
 **Environment**
 - Spack version: 1.0.0
 - OS: Ubuntu 24.04
-- Slurm version: 25-11-0-1
+- Slurm version: 26-05-5-1
 
 **Steps to Reproduce**
 1. spack repo add ...
@@ -40,6 +40,7 @@ Brief description of the issue
 ```text
 (paste error here)
 ```
+````
 
 Any other relevant information is helpful.
 

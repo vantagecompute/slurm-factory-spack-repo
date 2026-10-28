@@ -4,26 +4,34 @@ This package provides FreeIPMI support for hardware monitoring in Slurm clusters
 
 ## Overview
 
-FreeIPMI is a collection of Intelligent Platform Management Interface (IPMI) system software that provides in-band and out-of-band management of local and remote systems. When integrated with Slurm via the `+ipmi` variant, it enables hardware monitoring and power management features.
+FreeIPMI is a collection of Intelligent Platform Management Interface (IPMI) system software that provides in-band and out-of-band management of local and remote systems. The Slurm package always builds against it (`--with-freeipmi`), which enables Slurm's IPMI energy accounting plugin.
 
 ## Why Use FreeIPMI with Slurm?
 
 Integrating FreeIPMI with Slurm enables:
 
-- **Hardware Monitoring** - Temperature, voltage, fan speeds
-- **Power Management** - Power capping and monitoring
-- **Energy Accounting** - Track energy consumption per job
-- **Health Checks** - Automated node health monitoring
-- **Predictive Maintenance** - Identify failing hardware before it causes issues
+- **Hardware Monitoring**: Temperature, voltage, fan speeds
+- **Power Management**: Power capping and monitoring
+- **Energy Accounting**: Track energy consumption per job
+- **Health Checks**: Automated node health monitoring
+- **Predictive Maintenance**: Identify failing hardware before it causes issues
+
+## Available Versions
+
+| Version | Status |
+|---------|--------|
+| `1.6.16` | Only version; used by Slurm Factory |
+
+The package has no variants. It depends on `libgcrypt` and is configured with `--with-systemdsystemunitdir=no`, so it installs no systemd units.
 
 ## Installation
 
 ### With Slurm
 
-Enable IPMI support when installing Slurm:
+IPMI support is always built into the Slurm package; there is no variant to enable:
 
 ```bash
-spack install slurm@25-11-0-1 +ipmi
+spack install slurm_factory.slurm@26-05-5-1
 ```
 
 This automatically installs FreeIPMI as a dependency.
@@ -38,7 +46,7 @@ spack install slurm_factory.freeipmi
 
 ## Usage with Slurm
 
-Once Slurm is built with `+ipmi`, configure IPMI monitoring in `slurm.conf`:
+Configure IPMI energy accounting in `slurm.conf`:
 
 ```conf
 # Enable IPMI-based power management
@@ -86,19 +94,19 @@ ls -l /dev/ipmi*
 
 FreeIPMI provides access to:
 
-- **Sensor Data** - Temperature, voltage, current, fan speeds
-- **Power Consumption** - Real-time and historical power usage
-- **System Event Log (SEL)** - Hardware event logging
-- **Chassis Control** - Power on/off, reset
-- **Field Replaceable Units (FRU)** - Hardware inventory
+- **Sensor Data**: Temperature, voltage, current, fan speeds
+- **Power Consumption**: Real-time and historical power usage
+- **System Event Log (SEL)**: Hardware event logging
+- **Chassis Control**: Power on/off, reset
+- **Field Replaceable Units (FRU)**: Hardware inventory
 
 ## Hardware Requirements
 
 IPMI support requires:
 
-- **BMC (Baseboard Management Controller)** - IPMI-compliant hardware
-- **IPMI Interface** - In-band (KCS) or out-of-band (LAN) access
-- **Kernel Support** - IPMI device drivers loaded
+- **BMC (Baseboard Management Controller)**: IPMI-compliant hardware
+- **IPMI Interface**: In-band (KCS) or out-of-band (LAN) access
+- **Kernel Support**: IPMI device drivers loaded
 
 Check IPMI availability:
 
@@ -163,6 +171,6 @@ FreeIPMI is licensed under GPL-3.0-or-later.
 
 ## See Also
 
-- [Slurm Package](./slurm.md) - Enable with `+ipmi` variant
-- [Getting Started](../getting-started.md) - Installation guide
-- [Slurm Power Management](https://slurm.schedmd.com/power_mgmt.html) - Official docs
+- [Slurm Package](./slurm.md): Builds against FreeIPMI on every version
+- [Getting Started](../getting-started.md): Installation guide
+- [Slurm Power Management](https://slurm.schedmd.com/power_mgmt.html): Official docs

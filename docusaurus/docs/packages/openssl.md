@@ -17,7 +17,17 @@ The custom OpenSSL package in this repository:
 
 ## Available Versions
 
-The package supports multiple OpenSSL versions to maintain compatibility with different Slurm releases. Check the package definition for currently supported versions.
+| Version | Status |
+|---------|--------|
+| `3.6.0` | Only version; used by Slurm Factory |
+
+## Build Variants
+
+| Variant | Default | Description |
+|---------|---------|-------------|
+| `certs` | `mozilla` | CA certificates: `mozilla` (from `ca-certificates-mozilla`), `system` (symlink the host's) or `none` |
+| `shared` | `true` | Build shared libraries |
+| `docs` | `false` | Install docs and manpages |
 
 ## Installation
 
@@ -27,7 +37,7 @@ OpenSSL is typically installed automatically as a dependency of Slurm:
 
 ```bash
 # OpenSSL is pulled in automatically
-spack install slurm@25-11-0-1
+spack install slurm_factory.slurm@26-05-5-1
 ```
 
 ### Standalone Installation
@@ -42,15 +52,15 @@ spack install slurm_factory.openssl
 
 OpenSSL provides:
 
-- **TLS/SSL Support** - Secure communications between Slurm components
-- **Authentication** - Cryptographic functions for authentication
-- **Certificate Management** - X.509 certificates for node identity
+- **TLS/SSL Support**: Secure communications between Slurm components
+- **Authentication**: Cryptographic functions for authentication
+- **Certificate Management**: X.509 certificates for node identity
 
-Slurm uses OpenSSL for:
+In the Slurm Factory build, OpenSSL is:
 
-- Munge authentication backend
-- slurmrestd HTTPS support
-- Secure RPC communications (future Slurm versions)
+- A build, link and run dependency of Slurm itself
+- The `libcrypto` behind [s2n-tls](./s2n-tls.md), and so behind Slurm's `tls/s2n` plugin on Slurm 25.11 and newer
+- The TLS backend of the [curl](./curl.md) package (`tls=openssl`)
 
 ## Configuration
 
@@ -64,8 +74,10 @@ OpenSSL typically requires no special configuration for Slurm. However, you may 
 
 OpenSSL has minimal dependencies:
 
-- **zlib** - Compression support
-- Build tools (gcc, make, perl)
+- **zlib**: Compression support
+- **Perl** 5.14.0 or newer (build and test)
+- **ca-certificates-mozilla** (build, when `certs=mozilla`)
+- Build tools (gcc, gmake)
 
 ## Package Source
 
@@ -74,9 +86,10 @@ OpenSSL has minimal dependencies:
 
 ## License
 
-OpenSSL is dual-licensed under the Apache License 2.0 and the OpenSSL License.
+OpenSSL 3.x is licensed under the Apache License 2.0.
 
 ## See Also
 
-- [Slurm Package](./slurm.md) - Main Slurm package documentation
-- [Getting Started](../getting-started.md) - Installation guide
+- [Slurm Package](./slurm.md): Main Slurm package documentation
+- [s2n-tls Package](./s2n-tls.md): TLS library built on this OpenSSL
+- [Getting Started](../getting-started.md): Installation guide

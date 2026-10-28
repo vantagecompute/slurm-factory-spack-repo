@@ -6,19 +6,21 @@ Thank you for your interest in contributing to the Slurm Factory Spack Repositor
 
 There are many ways to contribute:
 
-- 🐛 **Report bugs** - Help us identify and fix issues
-- 💡 **Suggest features** - Propose new packages or variants
-- 📝 **Improve documentation** - Fix typos, clarify instructions, add examples
-- 🔧 **Submit patches** - Fix bugs or add features
-- 🧪 **Test packages** - Verify builds on different platforms
-- 📦 **Add packages** - Contribute new package definitions
+- **Report bugs**: Help us identify and fix issues
+- **Suggest features**: Propose new packages or variants
+- **Improve documentation**: Fix typos, clarify instructions, add examples
+- **Submit patches**: Fix bugs or add features
+- **Test packages**: Verify builds on different platforms
+- **Add packages**: Contribute new package definitions
 
 ## Getting Started
 
 ### Prerequisites
 
 - Git and GitHub account
-- Spack installed locally
+- Spack 1.0 or later installed locally
+- [uv](https://docs.astral.sh/uv/) and [just](https://just.systems/), for the repository checks
+- Node.js and Yarn, if you build the docs
 - Familiarity with Spack package development
 - Basic understanding of Python
 
@@ -32,7 +34,7 @@ git clone https://github.com/YOUR-USERNAME/slurm-factory-spack-repo.git
 cd slurm-factory-spack-repo
 ```
 
-1. Add the upstream remote:
+3. Add the upstream remote:
 
 ```bash
 git remote add upstream https://github.com/vantagecompute/slurm-factory-spack-repo.git
@@ -45,7 +47,7 @@ git remote add upstream https://github.com/vantagecompute/slurm-factory-spack-re
 Create a descriptive branch for your changes:
 
 ```bash
-git checkout -b fix/slurm-ipmi-variant
+git checkout -b fix/slurm-s2n-rpath
 # or
 git checkout -b feature/add-new-package
 # or
@@ -54,7 +56,7 @@ git checkout -b docs/update-getting-started
 
 ### 2. Make Changes
 
-Edit the package files in `spack_repo/slurm_factory/packages/`.
+Edit the package files in `spack_repo/slurm_factory/packages/`. Each package lives in its own directory as `package.py`; directory names must be valid Python module names, so a package such as `s2n-tls` lives in `s2n_tls/`.
 
 ### 3. Test Your Changes
 
@@ -64,11 +66,11 @@ Add the repository and test your changes:
 # Add your local repository
 spack repo add $(pwd)/spack_repo/slurm_factory
 
-# Test installation (dry run)
-spack spec slurm@25-11-0-1 +your-new-variant
+# Check the package concretizes
+spack spec slurm_factory.slurm@26-05-5-1 +your-new-variant
 
 # Test actual build (if needed)
-spack install --test=root slurm@25-11-0-1 +your-new-variant
+spack install --test=root slurm_factory.slurm@26-05-5-1 +your-new-variant
 ```
 
 ### 4. Update Documentation
@@ -78,6 +80,7 @@ If your changes affect user-facing functionality:
 - Update relevant package documentation in `docusaurus/docs/packages/`
 - Update the getting started guide if needed
 - Update the main README.md
+- When adding a Slurm version, update the version lists in the README, the [Overview](./index.md) and the [Slurm package page](./packages/slurm.md)
 
 ### 5. Commit Changes
 
@@ -86,12 +89,10 @@ checks every commit in a pull request against `.commitlintrc.yml`:
 
 ```bash
 git add .
-git commit -m "feat(slurm): add ipmi variant
+git commit -m "feat(slurm): add slurm 26.05.5
 
-- Add +ipmi variant for FreeIPMI support
-- Add freeipmi dependency
-- Add --with-freeipmi configure argument
-- Update package documentation
+- Add the 26-05-5-1 version and its sha256
+- Update the version lists in the docs
 "
 ```
 
@@ -115,7 +116,7 @@ just docs-build  # the docs site, including the generated package reference
 ### 6. Push and Create Pull Request
 
 ```bash
-git push origin fix/slurm-ipmi-variant
+git push origin fix/slurm-s2n-rpath
 ```
 
 Then create a pull request on GitHub with:
@@ -154,9 +155,8 @@ class PackageName(AutotoolsPackage):
 
 ### Coding Standards
 
-- Follow PEP 8 Python style guidelines
-- Use 4 spaces for indentation (no tabs)
-- Keep lines under 100 characters when possible
+- Code is formatted and linted with Ruff (`just fmt` applies it, `just lint` checks it), with a line length of 110
+- Spelling is checked with codespell, and types with Pyright (`just typecheck`)
 - Add comments for non-obvious logic
 - Include docstrings for complex methods
 
@@ -165,16 +165,17 @@ class PackageName(AutotoolsPackage):
 Before submitting:
 
 ```bash
-# Check package syntax
-spack install --test=root --dry-run slurm@version
+# Audit the package and check it concretizes
+spack audit packages slurm_factory.slurm
+spack spec slurm_factory.slurm@version
 
 # Test with multiple compilers (if applicable)
-spack install slurm@version %gcc@11
-spack install slurm@version %gcc@13
+spack install slurm_factory.slurm@version %gcc@11
+spack install slurm_factory.slurm@version %gcc@13
 
 # Test variants
-spack install slurm@version +variant1
-spack install slurm@version ~variant1
+spack install slurm_factory.slurm@version +variant1
+spack install slurm_factory.slurm@version ~variant1
 ```
 
 ### Documentation
@@ -191,14 +192,13 @@ spack install slurm@version ~variant1
 1. Maintainers will review your pull request
 2. Address any feedback or requested changes
 3. Once approved, a maintainer will merge your PR
-4. Your changes will be included in the next release
+4. Your changes reach Slurm Factory as soon as they merge, because it tracks the `main` branch of this repository; they are also included in the next [release](./releasing.md)
 
 ## Reporting Issues
 
 When reporting bugs:
 
 - Check existing issues first
-- Use the issue template
 - Include Spack version, OS, and error messages
 - Provide steps to reproduce
 - Include relevant logs
