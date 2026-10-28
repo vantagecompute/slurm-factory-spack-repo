@@ -31,6 +31,13 @@ class Openssl(Package):  # Uses Fake Autotools, should subclass Package
     executables = ["openssl"]
 
     license("Apache-2.0")
+    version("4.1.0", sha256="50c17baf54cb008f6ce42d50deb4b28050a1aad711636cabd4b241c7e90cc2fd")
+    # 4.x removes APIs that deprecated-API consumers in the Slurm stack (mysql
+    # client, libjwt) may still call, so 3.x stays the default until a full
+    # slurm-factory build has been proven against 4.x.
+    version(
+        "3.6.5", sha256="a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98", preferred=True
+    )
     version("3.6.0", sha256="b6a5f44b7eb69e3fa35dbf15524405b44837a481d43d81daddde3ff21fcbb8e9")
 
     variant(

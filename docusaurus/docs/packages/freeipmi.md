@@ -20,7 +20,8 @@ Integrating FreeIPMI with Slurm enables:
 
 | Version | Status |
 |---------|--------|
-| `1.6.16` | Only version; used by Slurm Factory |
+| `1.6.20` | Latest; used by Slurm Factory |
+| `1.6.16` | Previous |
 
 The package has no variants. It depends on `libgcrypt` and is configured with `--with-systemdsystemunitdir=no`, so it installs no systemd units.
 

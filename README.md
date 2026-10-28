@@ -23,8 +23,9 @@ This repository provides custom Spack packages, in the `slurm_factory` namespace
 - **curl**: Command-line tool for transferring data with URLs, with the LDAP support Slurm's InfluxDB plugin needs
 - **freeipmi**: IPMI library for hardware management
 - **openssl**: OpenSSL cryptographic library
-- **s2n-tls**: AWS's TLS library, for Slurm's `tls/s2n` plugin on Slurm 25.11 and newer
+- **s2n-tls**: AWS's TLS library, for Slurm's `tls/s2n` plugin
 - **pyxis**: NVIDIA's SPANK plugin for running Enroot containers through `srun`
+- **cuda**: The builtin Spack CUDA recipe plus NVIDIA releases it does not list yet
 
 ## Installation
 
@@ -96,7 +97,7 @@ spack:
       branch: main
 
   specs:
-  - slurm_factory.slurm@23-11-11-1 sysconfdir=/etc/slurm
+  - slurm_factory.slurm@26-05-5-1 sysconfdir=/etc/slurm
 
   concretizer:
     unify: true
@@ -154,7 +155,8 @@ for details.
             ├── freeipmi/       # IPMI hardware management
             ├── openssl/        # OpenSSL cryptographic library
             ├── s2n_tls/        # s2n-tls TLS library
-            └── pyxis/          # Pyxis SPANK plugin
+            ├── pyxis/          # Pyxis SPANK plugin
+            └── cuda/           # CUDA (builtin plus newer releases)
 ```
 
 ## Available Packages
@@ -168,9 +170,6 @@ Enhanced Slurm workload manager with a fixed production feature set and relocata
 - `26-05-5-1`: Slurm 26.05.5 (latest)
 - `26-05-4-1`: Slurm 26.05.4
 - `26-05-0-1`: Slurm 26.05.0
-- `25-11-6-1`: Slurm 25.11.6
-- `24-11-6-1`: Slurm 24.11.6
-- `23-11-11-1`: Slurm 23.11.11
 
 **Key features:**
 
@@ -182,7 +181,7 @@ Enhanced Slurm workload manager with a fixed production feature set and relocata
 - REST API daemon (slurmrestd)
 - Hardware locality (hwloc) support
 - FreeIPMI energy accounting, Lua and Kafka support
-- TLS through s2n-tls on Slurm 25.11 and newer
+- TLS through s2n-tls
 - GPU support (NVIDIA NVML and AMD ROCm SMI)
 
 ### freeipmi

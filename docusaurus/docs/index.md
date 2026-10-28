@@ -8,7 +8,7 @@ This repository provides:
 
 - **Custom Spack Packages**: Slurm, plus the dependencies whose upstream Spack recipes do not build the way Slurm Factory needs (curl, FreeIPMI, OpenSSL, s2n-tls) and the Pyxis SPANK plugin
 - **Pre-built Binaries**: A public, GPG-signed Spack buildcache that Slurm Factory publishes from these recipes
-- **Multiple Versions**: Slurm 23.11, 24.11, 25.11 and 26.05
+- **Slurm 26.05**: The current Slurm series, the only one Slurm Factory builds
 - **Relocatable Builds**: RPATHs set up so installs work from Spack views and tarballs
 
 ## Key Features
@@ -16,7 +16,7 @@ This repository provides:
 - **Fast Deployment**: Install from the buildcache instead of compiling Slurm and its dependency tree
 - **Relocatable Packages**: `$ORIGIN`-relative RPATHs for Slurm plugins and libraries
 - **GPG Signed**: Every package in the buildcache is signed
-- **Batteries Included**: Accounting (MySQL client), slurmrestd, PMIx, HDF5 and InfluxDB profiling, JWT, hwloc, FreeIPMI, Lua and Kafka support are built in, with TLS through s2n-tls on Slurm 25.11 and newer
+- **Batteries Included**: Accounting (MySQL client), slurmrestd, PMIx, HDF5 and InfluxDB profiling, JWT, hwloc, FreeIPMI, Lua and Kafka support are built in, with TLS through s2n-tls
 - **GPU Variants**: NVIDIA NVML and AMD ROCm SMI support
 
 ## Quick Start
@@ -68,9 +68,6 @@ Enhanced Slurm workload manager with production optimizations.
 - `26-05-5-1`: Latest (Slurm 26.05.5)
 - `26-05-4-1`: Slurm 26.05.4
 - `26-05-0-1`: Slurm 26.05.0
-- `25-11-6-1`: Slurm 25.11.6
-- `24-11-6-1`: Slurm 24.11.6
-- `23-11-11-1`: Slurm 23.11.11
 
 **Variants:**
 
@@ -101,7 +98,7 @@ See the [OpenSSL Package Documentation](./packages/openssl.md) for details.
 
 ### s2n-tls
 
-AWS's C99 TLS implementation, used by Slurm's `tls/s2n` plugin on Slurm 25.11 and newer.
+AWS's C99 TLS implementation, used by Slurm's `tls/s2n` plugin.
 
 See the [s2n-tls Package Documentation](./packages/s2n-tls.md) for details.
 
@@ -110,6 +107,12 @@ See the [s2n-tls Package Documentation](./packages/s2n-tls.md) for details.
 NVIDIA's SPANK plugin for running containerized tasks with Enroot through `srun`.
 
 See the [Pyxis Package Documentation](./packages/pyxis.md) for details.
+
+### cuda
+
+The builtin Spack CUDA recipe plus NVIDIA releases it does not list yet (13.4.3). Used by Slurm's NVML support.
+
+See the [CUDA Package Documentation](./packages/cuda.md) for details.
 
 ## Repository Structure
 
@@ -125,7 +128,8 @@ slurm-factory-spack-repo/
 │           ├── freeipmi/        # FreeIPMI package
 │           ├── openssl/         # OpenSSL package
 │           ├── s2n_tls/         # s2n-tls package
-│           └── pyxis/           # Pyxis package
+│           ├── pyxis/           # Pyxis package
+│           └── cuda/            # CUDA (builtin plus newer releases)
 ├── scripts/                     # Repository tooling (license headers)
 ├── tests/                       # Repository tests
 ├── docusaurus/                  # This documentation
@@ -152,7 +156,7 @@ There is one Spack mirror per OS toolchain, at `<toolchain>/spack`. Each mirror 
 | `rockylinux9` | Rocky Linux 9 | 11.5.0 | `https://slurm-factory-spack-binary-cache.vantagecompute.ai/rockylinux9/spack` |
 | `rockylinux8` | Rocky Linux 8 | 8.5.0 | `https://slurm-factory-spack-binary-cache.vantagecompute.ai/rockylinux8/spack` |
 
-**Slurm series**: 26.05, 25.11, 24.11 and 23.11, built as `26-05-5-1`, `25-11-6-1`, `24-11-6-1` and `23-11-11-1`.
+**Slurm series**: 26.05, built as `26-05-5-1`.
 
 :::note
 Slurm Factory publishes the GPU build, so the cached Slurm specs are `+nvml +rsmi sysconfdir=/etc/slurm`. A spec with different variants will not match the cache and is built from source.

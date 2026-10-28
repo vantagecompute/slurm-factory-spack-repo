@@ -17,7 +17,8 @@ This package provides a custom build of curl for Slurm Factory. It defaults to O
 
 | Version | Status |
 |---------|--------|
-| `8.15.0` | Latest; used by Slurm Factory |
+| `8.23.0` | Latest; used by Slurm Factory |
+| `8.15.0` | Previous |
 | `8.14.1` | |
 
 ## Variants
@@ -55,7 +56,7 @@ spack install slurm_factory.curl +ldap +libssh2 +nghttp2
 Slurm Factory pins a fuller spec:
 
 ```bash
-spack install slurm_factory.curl@8.15.0 libs=shared,static \
+spack install slurm_factory.curl@8.23.0 libs=shared,static \
   +nghttp2 +libssh2 +ldap +gssapi +libidn2 tls=openssl
 ```
 

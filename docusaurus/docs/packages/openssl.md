@@ -19,7 +19,9 @@ The custom OpenSSL package in this repository:
 
 | Version | Status |
 |---------|--------|
-| `3.6.0` | Only version; used by Slurm Factory |
+| `4.1.0` | Latest; OpenSSL 4 (`libcrypto.so.4`), opt in with `@4.1.0` |
+| `3.6.5` | Preferred (default); used by Slurm Factory |
+| `3.6.0` | Previous |
 
 ## Build Variants
 
@@ -59,7 +61,7 @@ OpenSSL provides:
 In the Slurm Factory build, OpenSSL is:
 
 - A build, link and run dependency of Slurm itself
-- The `libcrypto` behind [s2n-tls](./s2n-tls.md), and so behind Slurm's `tls/s2n` plugin on Slurm 25.11 and newer
+- The `libcrypto` behind [s2n-tls](./s2n-tls.md), and so behind Slurm's `tls/s2n` plugin
 - The TLS backend of the [curl](./curl.md) package (`tls=openssl`)
 
 ## Configuration

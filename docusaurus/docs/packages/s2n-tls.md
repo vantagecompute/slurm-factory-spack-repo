@@ -4,7 +4,7 @@ This package provides s2n-tls, Amazon's C99 TLS implementation, for use with Slu
 
 ## Overview
 
-[s2n-tls](https://github.com/aws/s2n-tls) is a C99 implementation of the TLS/SSL protocols designed to be simple, small, fast, and with security as a priority. Starting with Slurm 25.11, the `tls/s2n` plugin is the recommended TLS backend for secure communications between Slurm daemons.
+[s2n-tls](https://github.com/aws/s2n-tls) is a C99 implementation of the TLS/SSL protocols designed to be simple, small, fast, and with security as a priority. The `tls/s2n` plugin is the recommended TLS backend for secure communications between Slurm daemons.
 
 ## Why a Custom Package?
 
@@ -38,7 +38,7 @@ This package ensures `libs2n.so` always resolves to the correct spack-built `lib
 
 ### As a Slurm Dependency
 
-s2n-tls is automatically installed as a dependency of Slurm 25.11 and newer:
+s2n-tls is automatically installed as a dependency of Slurm:
 
 ```bash
 spack install slurm_factory.slurm@26-05-5-1
