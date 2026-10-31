@@ -44,15 +44,27 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
-          package-manager-cache: ${{ runner.environment == 'github-hosted' }}
-      - name: Install commitlint
-        run: npm install --no-save @commitlint/cli @commitlint/config-conventional
+          node-version: 26
+          package-manager-cache: false
+
+      - name: Set up Yarn (pinned by packageManager, checksum-verified)
+        uses: ./.github/actions/setup-yarn
+
       - name: Validate PR commits with commitlint
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: npx commitlint --from "${BASE_SHA}" --to "${HEAD_SHA}" --verbose
+        run: |
+          # commitlint resolves the config's `extends` from the checkout, so its
+          # packages need a node_modules there (yarn dlx's throwaway project is not
+          # one): install the pinned pair into a temp project and link it in.
+          tools="$RUNNER_TEMP/commitlint"
+          mkdir -p "$tools"
+          printf '{"name":"commitlint-ci","private":true}\n' > "$tools/package.json"
+          : > "$tools/yarn.lock"
+          (cd "$tools" && YARN_NODE_LINKER=node-modules YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn add @commitlint/cli@21.2.4 @commitlint/config-conventional@21.2.4 >/dev/null)
+          ln -sfn "$tools/node_modules" node_modules
+          "$tools/node_modules/.bin/commitlint" --from "${BASE_SHA}" --to "${HEAD_SHA}" --verbose
 
   ci-tests:
     name: CI-Tests
@@ -89,15 +101,14 @@ jobs:
           python-version: '3.14'
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
-          cache: ${{ runner.environment == 'github-hosted' && 'yarn' || '' }}
-          cache-dependency-path: docusaurus/yarn.lock
-          package-manager-cache: ${{ runner.environment == 'github-hosted' }}
-      - name: Enable Corepack
-        run: corepack enable
+          node-version: 26
+          package-manager-cache: false
+
+      - name: Set up Yarn (pinned by packageManager, checksum-verified)
+        uses: ./.github/actions/setup-yarn
       - name: Install docs dependencies
         working-directory: docusaurus
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
       - name: Typecheck
         working-directory: docusaurus
         run: yarn typecheck
