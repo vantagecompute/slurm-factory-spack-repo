@@ -88,7 +88,7 @@ check: lint typecheck test
 # Install Docusaurus dependencies
 [group("docusaurus")]
 docs-install:
-    cd docusaurus && yarn install --frozen-lockfile
+    cd docusaurus && yarn install --immutable
 
 # Start Docusaurus development server
 [group("docusaurus")]
