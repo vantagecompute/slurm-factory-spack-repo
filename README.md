@@ -6,7 +6,7 @@
 # Slurm Factory Spack Repository
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/python-3.14+-blue.svg)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-24.0+-blue.svg)](https://docker.com)
 
 Spack Repository for use with Vantage Compute Slurm Factory.
